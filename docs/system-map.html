@@ -1,3 +1,6 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>CEA Reserve System Map</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
@@ -65,6 +68,32 @@
   svg .edge.pl { stroke: var(--muted); stroke-dasharray: 5 4; }
   svg .badge { fill: var(--accent); }
   svg .badge-t { fill: var(--accent-ink); font-size: 10.5px; font-weight: 600; font-family: var(--mono); }
+  svg .sys { fill: var(--accent); stroke: none; }
+  svg .sys-t { fill: var(--accent-ink); font-family: var(--display); font-weight: 700; font-size: 16px; }
+  svg .sys-s { fill: var(--accent-ink); opacity: .82; font-size: 11px; }
+  svg .tb { fill: none; stroke: var(--red); stroke-width: 1.4; stroke-dasharray: 6 5; }
+  svg .red { fill: var(--red); font-weight: 600; font-size: 11.5px; }
+  .sw.sys { border-color: var(--accent); background: var(--accent); }
+  .sw.tb { border: 1.5px dashed var(--red); background: transparent; }
+  @page { size: A4; margin: 12mm 10mm; }
+  @media print { .keep { break-inside: avoid; page-break-inside: avoid; } }
+  @media print { .mermaid-fig svg { max-height: 545px; } }
+  @media print {
+    :root:not([data-theme="dark"]) {
+      color-scheme: light;
+      --bg: #ffffff; --ink: #1a2330; --muted: #5d6977; --line: #c5ccd3;
+      --panel: #eaeef1; --card: #ffffff; --accent: #0b3a5d; --accent-ink: #ffffff;
+      --tint: #dce8f2; --tint-line: #6f95b6; --p1: #f1e9d6; --p1-line: #b89a5a; --red: #b8102b;
+    }
+    body { background: #fff; }
+    .wrap { max-width: none; padding: 0; }
+    h2 { break-after: avoid; page-break-after: avoid; }
+    figure, .fig, .card, table { break-inside: avoid; page-break-inside: avoid; }
+    svg { min-width: 0; }
+  }
+  .mermaid-fig { overflow-x: auto; }
+  .mermaid-fig .mermaid { margin: 0; font-family: var(--body); }
+  .mermaid-fig svg { min-width: 0; max-width: 100%; height: auto; margin: 0 auto; }
   figcaption { font-size: 13px; color: var(--muted); margin: 10px 4px 0; max-width: 80ch; }
   table { border-collapse: collapse; width: 100%; font-size: 14px; margin-top: 8px; }
   th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
@@ -79,15 +108,254 @@
   .risk { border-left: 3px solid var(--red); }
   footer { margin-top: 40px; font-size: 12.5px; color: var(--muted); max-width: 70ch; }
 </style>
+<script type="module">
+  import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+  mermaid.initialize({ startOnLoad: true, theme: "neutral", securityLevel: "loose",
+    flowchart: { htmlLabels: true, curve: "basis", nodeSpacing: 24, rankSpacing: 30 },
+    themeVariables: { fontFamily: "Inter, system-ui, sans-serif", fontSize: "13px" } });
+</script>
 
 <div class="wrap">
   <header>
     <div class="eyebrow">Backend Builders · Howard CEA · September 2026</div>
     <h1>CEA Reserve System Map</h1>
-    <p class="lede">A high-level view of the event space reservation system: what the repository implements today, what the fifteen open GitHub issues add, and the order they have to land in.</p>
+    <p class="lede">A high-level view of the event space reservation system: the final architecture the application is being built toward, what the repository implements today, what the fifteen open GitHub issues add, and the order they have to land in.</p>
   </header>
 
-  <h2>1. Architecture: today versus target</h2>
+  <section class="keep">
+  <h2>1. Architectural diagram</h2>
+  <p>The final architecture baseline of the application: the system as it is meant to run once the backlog is delivered. Users sign in through Howard SSO, the existing frontend talks to a reservation API over HTTPS, every rule runs once in a shared domain module on the server, and approvals persist and fan out to the service teams.</p>
+  <figure>
+    <div class="fig mermaid-fig">
+      <pre class="mermaid">
+flowchart TB
+  subgraph USERS["Users"]
+    direction LR
+    REQ["Requester<br/>student org, faculty, staff"]
+    ADM["Dean's Office admin"]
+  end
+
+  subgraph CLIENT["Client · browser"]
+    FE["Frontend · TanStack Start, React 19, TypeScript<br/>routes: / · /rooms · /reserve · /dashboard · /admin"]
+    QC["Typed API client · react-query<br/>mocks only behind VITE_USE_MOCKS"]
+  end
+
+  subgraph SERVER["Server · Cloudflare Workers or AWS"]
+    AUTH["Authentication and authorization<br/>Howard SSO · roles: student, advisor, admin, facilities"]
+    API["Reservation API<br/>POST · GET · PATCH /reservations<br/>audit log on every admin write"]
+    subgraph DOMAIN["Domain module · single source of truth for the rules"]
+      direction LR
+      VAL["validateReservation"]
+      CONF["detectConflicts"]
+      RISK["computeRisk"]
+      REC["recommendRooms"]
+    end
+    NOTIF["Notification service<br/>email and webhooks on approval"]
+  end
+
+  subgraph DATA["Data"]
+    DB[("Database · Postgres / Supabase / D1<br/>rooms · reservations · users and roles · audit_log")]
+  end
+
+  subgraph TEAMS["Service teams"]
+    FAC["Facilities staff<br/>IT · custodial · security"]
+  end
+
+  subgraph QA["Quality gates · CI on every pull request"]
+    direction LR
+    UNIT["Vitest · domain rules"]
+    E2E["Playwright · reserve → dashboard → admin"]
+    SEC["401 / 403 checks on admin writes"]
+  end
+
+  REQ -->|"submit and track requests"| FE
+  ADM -->|"review, approve, reject"| FE
+  FE --> QC
+  QC -->|"HTTPS · JSON · session cookie"| AUTH
+  AUTH -->|"role checked server-side"| API
+  API --> VAL
+  API --> CONF
+  API --> RISK
+  API --> REC
+  VAL --> DB
+  CONF --> DB
+  RISK --> DB
+  REC --> DB
+  API -->|"on approval or high risk"| NOTIF
+  NOTIF -->|"alerts"| FAC
+  QA -.->|"gates merges to"| SERVER
+
+  classDef user fill:#dce8f2,stroke:#6f95b6,color:#1a2330
+  classDef client fill:#ffffff,stroke:#1a2330,color:#1a2330
+  classDef server fill:#ffffff,stroke:#0b3a5d,color:#1a2330
+  classDef domain fill:#eaeef1,stroke:#0b3a5d,color:#1a2330
+  classDef data fill:#0b3a5d,stroke:#0b3a5d,color:#ffffff
+  classDef qa fill:#f1e9d6,stroke:#b89a5a,color:#1a2330
+  class REQ,ADM,FAC user
+  class FE,QC client
+  class AUTH,API,NOTIF server
+  class VAL,CONF,RISK,REC domain
+  class DB data
+  class UNIT,E2E,SEC qa
+  style USERS fill:#f6f7f5,stroke:#c5ccd3,color:#5d6977
+  style CLIENT fill:#f6f7f5,stroke:#c5ccd3,color:#5d6977
+  style SERVER fill:#f6f7f5,stroke:#b8102b,stroke-dasharray:6 4,color:#5d6977
+  style DOMAIN fill:#ffffff,stroke:#c5ccd3,color:#5d6977
+  style DATA fill:#f6f7f5,stroke:#c5ccd3,color:#5d6977
+  style QA fill:#f6f7f5,stroke:#c5ccd3,color:#5d6977
+  style TEAMS fill:#f6f7f5,stroke:#c5ccd3,color:#5d6977
+      </pre>
+    </div>
+    <figcaption>Figure 1. Architectural diagram of the final application. The red dashed border around the server is the trust boundary: nothing the browser sends is trusted until the API has checked the session and re-run the domain rules. The same diagram source is in the README under Architecture.</figcaption>
+  </figure>
+  </section>
+
+  <section class="keep">
+  <h2>2. Current implementation: layered view of the repository</h2>
+  <p>A layered view of the repository at commit <code>f317c48</code>. The red dashed box is the trust boundary: every layer inside it runs in the visitor's browser, so nothing the client checks can be relied on. The bottom rows show how the app is built and served, and the six components the README describes that do not exist in the code.</p>
+  <div class="legend">
+    <span><i class="sw"></i> exists in the repo</span>
+    <span><i class="sw dash"></i> not implemented</span>
+    <span><i class="sw tb"></i> trust boundary</span>
+  </div>
+  <figure>
+    <div class="fig">
+      <svg viewBox="0 0 1000 690" role="img" aria-label="Layered architecture: five TanStack routes in the browser call client-side rules and read two static TypeScript modules. Everything runs inside the browser trust boundary. Vite builds the app for Cloudflare Workers. Authentication, backend API, database, conflict detection, notifications and tests are not present.">
+        <defs>
+          <marker id="arch-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5 0 10z" fill="currentColor"></path></marker>
+        </defs>
+
+        <rect class="tb" x="20" y="14" width="960" height="500" rx="10"></rect>
+        <text class="red" x="34" y="34">TRUST BOUNDARY · everything below runs in the visitor's browser; no server-side check exists (TD-02, TD-03)</text>
+
+        <!-- layer 1: presentation -->
+        <rect class="panel" x="34" y="48" width="932" height="156" rx="8"></rect>
+        <text class="h" x="46" y="68">PRESENTATION · src/routes (TanStack file routes) + src/components</text>
+
+        <rect class="ex" x="46" y="82" width="168" height="60" rx="6"></rect>
+        <text class="m" x="130" y="105" text-anchor="middle" font-weight="600">/</text>
+        <text class="s" x="130" y="124" text-anchor="middle">landing: hero, feature list</text>
+
+        <rect class="ex" x="226" y="82" width="168" height="60" rx="6"></rect>
+        <text class="m" x="310" y="105" text-anchor="middle" font-weight="600">/rooms</text>
+        <text class="s" x="310" y="124" text-anchor="middle">room card grid from ROOMS</text>
+
+        <rect class="ex" x="406" y="82" width="168" height="60" rx="6"></rect>
+        <text class="m" x="490" y="105" text-anchor="middle" font-weight="600">/reserve</text>
+        <text class="s" x="490" y="124" text-anchor="middle">form, live checks, room recs</text>
+
+        <rect class="ex" x="586" y="82" width="168" height="60" rx="6"></rect>
+        <text class="m" x="670" y="105" text-anchor="middle" font-weight="600">/dashboard</text>
+        <text class="s" x="670" y="124" text-anchor="middle">request list + status counts</text>
+
+        <rect class="ex" x="766" y="82" width="168" height="60" rx="6"></rect>
+        <text class="m" x="850" y="105" text-anchor="middle" font-weight="600">/admin</text>
+        <text class="s" x="850" y="124" text-anchor="middle">queue, approve / reject, risk</text>
+
+        <rect class="chip" x="46" y="160" width="70" height="26" rx="4"></rect>
+        <text class="s" x="81" y="177" text-anchor="middle">SiteNav</text>
+        <rect class="chip" x="124" y="160" width="82" height="26" rx="4"></rect>
+        <text class="s" x="165" y="177" text-anchor="middle">SiteFooter</text>
+        <rect class="chip" x="214" y="160" width="176" height="26" rx="4"></rect>
+        <text class="s" x="302" y="177" text-anchor="middle">shadcn/ui · 50 Radix primitives</text>
+        <rect class="chip" x="398" y="160" width="100" height="26" rx="4"></rect>
+        <text class="s" x="448" y="177" text-anchor="middle">Tailwind CSS v4</text>
+        <rect class="chip" x="506" y="160" width="204" height="26" rx="4"></rect>
+        <text class="s" x="608" y="177" text-anchor="middle">routeTree.gen.ts → router.tsx</text>
+        <rect class="chip" x="718" y="160" width="216" height="26" rx="4"></rect>
+        <text class="s" x="826" y="177" text-anchor="middle">__root.tsx shell, 404 and error pages</text>
+
+        <line class="edge" x1="500" y1="204" x2="500" y2="234" marker-end="url(#arch-a)"></line>
+        <text class="s" x="512" y="223">imports and calls during render</text>
+
+        <!-- layer 2: rules -->
+        <rect class="panel" x="34" y="234" width="932" height="112" rx="8"></rect>
+        <text class="h" x="46" y="254">BUSINESS RULES · client-side only, written inline per page (TD-03)</text>
+
+        <rect class="ex" x="46" y="266" width="218" height="70" rx="6"></rect>
+        <text class="t" x="155" y="288" text-anchor="middle">Inline form validation</text>
+        <text class="s" x="155" y="306" text-anchor="middle">in ReservePage: required fields,</text>
+        <text class="s" x="155" y="322" text-anchor="middle">capacity vs room, end after start</text>
+
+        <rect class="ex" x="276" y="266" width="218" height="70" rx="6"></rect>
+        <text class="t" x="385" y="288" text-anchor="middle">recommendRooms(n)</text>
+        <text class="s" x="385" y="306" text-anchor="middle">rooms with n ≤ capacity ≤ 3n,</text>
+        <text class="s" x="385" y="322" text-anchor="middle">smallest three returned</text>
+
+        <rect class="ex" x="506" y="266" width="218" height="70" rx="6"></rect>
+        <text class="t" x="615" y="288" text-anchor="middle">riskScore(request)</text>
+        <text class="s" x="615" y="306" text-anchor="middle">attendance, guests, after-hours, food</text>
+        <text class="s" x="615" y="322" text-anchor="middle">→ low / medium / high (display only)</text>
+
+        <rect class="ex" x="736" y="266" width="218" height="70" rx="6"></rect>
+        <text class="t" x="845" y="288" text-anchor="middle">React useState</text>
+        <text class="s" x="845" y="306" text-anchor="middle">submitted flag; admin status edits</text>
+        <text class="s" x="845" y="322" text-anchor="middle">discarded on page refresh</text>
+
+        <line class="edge" x1="500" y1="346" x2="500" y2="376" marker-end="url(#arch-a)"></line>
+        <text class="s" x="512" y="365">reads in-memory arrays; nothing is ever written back</text>
+
+        <!-- layer 3: data -->
+        <rect class="panel" x="34" y="376" width="932" height="122" rx="8"></rect>
+        <text class="h" x="46" y="396">DATA · static TypeScript modules bundled with the app (TD-01, TD-06)</text>
+
+        <rect class="ex" x="46" y="408" width="295" height="78" rx="6"></rect>
+        <text class="m" x="193" y="430" text-anchor="middle" font-weight="600">src/lib/rooms.ts</text>
+        <text class="s" x="193" y="448" text-anchor="middle">ROOMS[6]: id, building, floor, capacity, features</text>
+        <text class="s" x="193" y="464" text-anchor="middle">hard-coded status: available | reserved</text>
+
+        <rect class="ex" x="353" y="408" width="295" height="78" rx="6"></rect>
+        <text class="m" x="500" y="430" text-anchor="middle" font-weight="600">src/lib/mock-requests.ts</text>
+        <text class="s" x="500" y="448" text-anchor="middle">MOCK_REQUESTS[5]: title, org, date, times,</text>
+        <text class="s" x="500" y="464" text-anchor="middle">attendance, room (free text), status, flags</text>
+
+        <rect class="ex" x="660" y="408" width="295" height="78" rx="6"></rect>
+        <text class="m" x="807" y="430" text-anchor="middle" font-weight="600">src/assets/</text>
+        <text class="s" x="807" y="448" text-anchor="middle">hero image and six room photos (jpg)</text>
+        <text class="s" x="807" y="464" text-anchor="middle">imported by rooms.ts and the landing page</text>
+
+        <!-- build and hosting -->
+        <text class="h" x="34" y="544">BUILD AND HOSTING</text>
+        <rect class="ex" x="34" y="554" width="280" height="56" rx="6"></rect>
+        <text class="t" x="174" y="576" text-anchor="middle">Vite 7 + @lovable.dev/vite-tanstack-config</text>
+        <text class="s" x="174" y="594" text-anchor="middle">bundles routes, Tailwind, path aliases</text>
+        <line class="edge" x1="314" y1="582" x2="360" y2="582" marker-end="url(#arch-a)"></line>
+        <rect class="ex" x="360" y="554" width="280" height="56" rx="6"></rect>
+        <text class="t" x="500" y="576" text-anchor="middle">TanStack Start server entry</text>
+        <text class="s" x="500" y="594" text-anchor="middle">renders the SSR shell, then hydrates in the browser</text>
+        <line class="edge" x1="640" y1="582" x2="686" y2="582" marker-end="url(#arch-a)"></line>
+        <rect class="ex" x="686" y="554" width="280" height="56" rx="6"></rect>
+        <text class="t" x="826" y="576" text-anchor="middle">Cloudflare Workers (wrangler.jsonc)</text>
+        <text class="s" x="826" y="594" text-anchor="middle">plus the Lovable preview URL</text>
+
+        <!-- missing -->
+        <text class="red" x="34" y="636">NOT IN THE REPOSITORY, although the README lists them as features</text>
+        <rect class="pl" x="34" y="644" width="148" height="40" rx="6"></rect>
+        <text class="s" x="108" y="660" text-anchor="middle">Authentication and roles</text>
+        <text class="s" x="108" y="675" text-anchor="middle">TD-02 · #14</text>
+        <rect class="pl" x="190" y="644" width="148" height="40" rx="6"></rect>
+        <text class="s" x="264" y="660" text-anchor="middle">Backend API</text>
+        <text class="s" x="264" y="675" text-anchor="middle">TD-01 · #13</text>
+        <rect class="pl" x="346" y="644" width="148" height="40" rx="6"></rect>
+        <text class="s" x="420" y="660" text-anchor="middle">Database / persistence</text>
+        <text class="s" x="420" y="675" text-anchor="middle">TD-01 · #13</text>
+        <rect class="pl" x="502" y="644" width="148" height="40" rx="6"></rect>
+        <text class="s" x="576" y="660" text-anchor="middle">Conflict detection</text>
+        <text class="s" x="576" y="675" text-anchor="middle">TD-03 · #3</text>
+        <rect class="pl" x="658" y="644" width="148" height="40" rx="6"></rect>
+        <text class="s" x="732" y="660" text-anchor="middle">Service notifications</text>
+        <text class="s" x="732" y="675" text-anchor="middle">TD-05 · #8 #9 #10</text>
+        <rect class="pl" x="814" y="644" width="148" height="40" rx="6"></rect>
+        <text class="s" x="888" y="660" text-anchor="middle">Automated tests and CI</text>
+        <text class="s" x="888" y="675" text-anchor="middle">TD-04 · #15</text>
+      </svg>
+    </div>
+    <figcaption>Figure 2. The current codebase, as-is. Three layers, all client-side: routes render, inline rules run, and static modules are read. The build pipeline serves that bundle from Cloudflare Workers. TD numbers refer to DEBT_AND_RISK.md; issue numbers to the GitHub backlog.</figcaption>
+  </figure>
+  </section>
+
+  <section class="keep">
+  <h2>3. Target architecture: today versus target</h2>
   <p>The left side is what runs now. Every route reads from two static TypeScript modules and holds edits in React state, so a refresh discards each submission and approval. The right side is the layered system the backlog describes, with the issue number that delivers each part.</p>
   <div class="legend">
     <span><i class="sw"></i> exists in the repo</span>
@@ -208,10 +476,12 @@
         <text class="s" x="665" y="536" text-anchor="middle">reservations · rooms · audit log</text>
       </svg>
     </div>
-    <figcaption>Figure 1. The prototype stops at the browser. The target moves every rule the client applies today behind an API so it cannot be bypassed, and adds the three service integrations the README already promises.</figcaption>
+    <figcaption>Figure 3. The prototype stops at the browser. The target moves every rule the client applies today behind an API so it cannot be bypassed, and adds the three service integrations the README already promises.</figcaption>
   </figure>
+  </section>
 
-  <h2>2. Life of a reservation request</h2>
+  <section class="keep">
+  <h2>4. Life of a reservation request</h2>
   <p>This is the path a request takes through the app, with the rules the code applies at each step. The client-side checks and room suggestions work today. Persisting the submission and notifying staff are planned.</p>
   <figure>
     <div class="fig">
@@ -274,10 +544,12 @@
         <line class="edge pl" x1="793" y1="186" x2="793" y2="203" marker-end="url(#arr-m)"></line>
       </svg>
     </div>
-    <figcaption>Figure 2. Solid boxes and arrows run in the browser today. The dashed resubmit edge, the persistence step, and the notification fan-out exist only as tickets.</figcaption>
+    <figcaption>Figure 4. Solid boxes and arrows run in the browser today. The dashed resubmit edge, the persistence step, and the notification fan-out exist only as tickets.</figcaption>
   </figure>
+  </section>
 
-  <h2>3. Ticket dependency graph</h2>
+  <section class="keep">
+  <h2>5. Ticket dependency graph</h2>
   <p>Every issue carries a priority and a "depends on" note. Read left to right: a ticket can start once everything pointing into it is merged. The persistent API is the root of almost everything, which is why the board says to start there.</p>
   <div class="legend">
     <span><i class="sw"></i> P0 foundation / MVP</span>
@@ -382,10 +654,11 @@
         <text class="s" x="669" y="334" text-anchor="middle">#5 supplies the risk thresholds #10 alerts on</text>
       </svg>
     </div>
-    <figcaption>Figure 3. Edges are the direct dependencies from each issue's backlog notes. Edges that only repeat "depends on #13" through another ticket are omitted; every ticket right of the first column already needs the API.</figcaption>
+    <figcaption>Figure 5. Edges are the direct dependencies from each issue's backlog notes. Edges that only repeat "depends on #13" through another ticket are omitted; every ticket right of the first column already needs the API.</figcaption>
   </figure>
+  </section>
 
-  <h2>4. Routes and what feeds them</h2>
+  <h2>6. Routes and what feeds them</h2>
   <div class="tbl">
   <table>
     <thead><tr><th>Route</th><th>What it shows</th><th>Reads from today</th><th>Writes</th></tr></thead>
@@ -399,7 +672,7 @@
   </table>
   </div>
 
-  <h2>5. What the audit flags</h2>
+  <h2>7. What the audit flags</h2>
   <div class="grid">
     <div class="card risk">
       <h3>Open admin surface</h3>
@@ -419,5 +692,5 @@
     </div>
   </div>
 
-  <footer>Sources: the repository at joniabeje/backend-builders on main (commit e47a61d), README.md, DEBT_AND_RISK.md, and GitHub issues #1 through #15 with their backlog notes finalized 2026-09-23. Ticket labels F1 to F16 are the original feature codes.</footer>
+  <footer>Sources: the repository at joniabeje/backend-builders on main (commit f317c48), README.md, DEBT_AND_RISK.md (TD and RISK identifiers), and GitHub issues #1 through #15 with their backlog notes finalized 2026-09-23. Ticket labels F1 to F16 are the original feature codes.</footer>
 </div>

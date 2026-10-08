@@ -1,0 +1,782 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Project Reset Report</title>
+<meta name="description" content="Senior Project II reset report for the CEA Event Space Reservation System: architecture, technical debt and risk, backlog health, and initial priorities.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --bg: #f6f7f5;
+    --ink: #1a2330;
+    --muted: #5d6977;
+    --line: #c5ccd3;
+    --panel: #eaeef1;
+    --card: #ffffff;
+    --accent: #0b3a5d;
+    --accent-ink: #ffffff;
+    --tint: #dce8f2;
+    --tint-line: #6f95b6;
+    --gold: #f1e9d6;
+    --gold-line: #b89a5a;
+    --red: #b8102b;
+    --red-soft: #f8e3e6;
+    --amber: #fbefd3;
+    --amber-line: #c58a12;
+    --green: #e0f0e4;
+    --green-line: #2f7d4a;
+    --display: "Plus Jakarta Sans", "Inter", system-ui, sans-serif;
+    --body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg: #0f151c; --ink: #e5eaef; --muted: #98a4b1; --line: #3a4652;
+      --panel: #171f28; --card: #1c2530; --accent: #8fbfe8; --accent-ink: #0f151c;
+      --tint: #1e3346; --tint-line: #5f8fb8; --gold: #332c1c; --gold-line: #a68b4f;
+      --red: #f0616f; --red-soft: #3a1e23; --amber: #3a2f14; --amber-line: #d9a53a;
+      --green: #16301f; --green-line: #5fbf7f;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #0f151c; --ink: #e5eaef; --muted: #98a4b1; --line: #3a4652;
+    --panel: #171f28; --card: #1c2530; --accent: #8fbfe8; --accent-ink: #0f151c;
+    --tint: #1e3346; --tint-line: #5f8fb8; --gold: #332c1c; --gold-line: #a68b4f;
+    --red: #f0616f; --red-soft: #3a1e23; --amber: #3a2f14; --amber-line: #d9a53a;
+    --green: #16301f; --green-line: #5fbf7f;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 14.5px; line-height: 1.55; }
+  .wrap { max-width: 1000px; margin: 0 auto; padding: 32px 16px 64px; }
+
+  /* cover */
+  .cover { background: var(--accent); color: var(--accent-ink); border-radius: 14px; padding: 40px 36px 32px; margin-bottom: 36px; }
+  .cover .eyebrow { color: var(--accent-ink); opacity: .78; }
+  .cover h1 { color: var(--accent-ink); font-size: clamp(30px, 5vw, 46px); margin: 10px 0 10px; }
+  .cover .lede { color: var(--accent-ink); opacity: .88; max-width: 70ch; font-size: 16px; }
+  .meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px 24px; margin-top: 28px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,.25); font-size: 13px; }
+  .meta b { display: block; font-weight: 600; opacity: .72; font-size: 11.5px; letter-spacing: .06em; text-transform: uppercase; margin-bottom: 2px; }
+  .meta code { color: inherit; background: rgba(255,255,255,.14); }
+
+  .eyebrow { font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  h1 { font-family: var(--display); font-weight: 800; line-height: 1.1; margin: 0; letter-spacing: -.01em; text-wrap: balance; }
+  h2 { font-family: var(--display); font-weight: 700; font-size: 24px; margin: 44px 0 10px; letter-spacing: -.005em; display: flex; align-items: baseline; gap: 12px; }
+  h2 .num { font-family: var(--mono); font-size: 14px; color: var(--muted); font-weight: 500; }
+  h3 { font-family: var(--display); font-weight: 700; font-size: 17px; margin: 28px 0 8px; }
+  h4 { font-family: var(--display); font-weight: 600; font-size: 14.5px; margin: 18px 0 6px; }
+  p { max-width: 74ch; margin: 0 0 12px; }
+  ul, ol { max-width: 78ch; margin: 0 0 12px; padding-left: 22px; }
+  li { margin-bottom: 4px; }
+  code { font-family: var(--mono); font-size: .9em; background: var(--panel); padding: 1px 5px; border-radius: 4px; }
+  pre { font-family: var(--mono); font-size: 12.5px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; overflow-x: auto; }
+  a { color: var(--accent); }
+
+  .toc { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px 20px; margin: 0 0 8px; }
+  .toc ol { margin: 0; columns: 2; column-gap: 32px; padding-left: 20px; }
+  .toc li { break-inside: avoid; }
+
+  .verdict { display: grid; grid-template-columns: 1fr; gap: 14px; margin: 16px 0 20px; }
+  @media (min-width: 720px) { .verdict { grid-template-columns: 1.4fr 1fr; } }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; }
+  .card h3 { margin-top: 0; }
+  .kpi { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin: 14px 0 18px; }
+  .kpi .k { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; }
+  .kpi .v { font-family: var(--display); font-weight: 800; font-size: 26px; line-height: 1; letter-spacing: -.01em; }
+  .kpi .l { font-size: 12px; color: var(--muted); margin-top: 6px; }
+
+  table { border-collapse: collapse; width: 100%; font-size: 13px; margin: 8px 0 18px; background: var(--card); }
+  th, td { text-align: left; vertical-align: top; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+  th { font-weight: 600; font-size: 12px; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); background: var(--panel); }
+  tr:last-child td { border-bottom: 0; }
+  table.framed { border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  td.m, th.m { font-family: var(--mono); font-size: 12px; white-space: nowrap; }
+  td.c { text-align: center; }
+
+  .pill { display: inline-block; font-size: 11.5px; font-weight: 600; padding: 2px 9px; border-radius: 999px; border: 1px solid; white-space: nowrap; }
+  .pill.red { background: var(--red-soft); border-color: var(--red); color: var(--red); }
+  .pill.amber { background: var(--amber); border-color: var(--amber-line); color: var(--amber-line); }
+  .pill.green { background: var(--green); border-color: var(--green-line); color: var(--green-line); }
+  .pill.navy { background: var(--tint); border-color: var(--tint-line); color: var(--accent); }
+  .pill.grey { background: var(--panel); border-color: var(--line); color: var(--muted); }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 10px 22px; font-size: 13px; color: var(--muted); margin: 8px 0 12px; }
+  .legend span { display: inline-flex; align-items: center; gap: 8px; }
+  .sw { width: 26px; height: 14px; border-radius: 3px; border: 1.5px solid var(--tint-line); background: var(--tint); }
+  .sw.dash { border: 1.5px dashed var(--muted); background: transparent; }
+  .sw.tb { border: 1.5px dashed var(--red); background: transparent; }
+  .sw.gold { border-color: var(--gold-line); background: var(--gold); }
+  .sw.sys { border-color: var(--accent); background: var(--accent); }
+
+  figure { margin: 0 0 20px; }
+  .fig { overflow-x: auto; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
+  svg { display: block; max-width: 100%; height: auto; min-width: 640px; font-family: var(--body); color: var(--ink); }
+  svg text { font-size: 12px; fill: currentColor; }
+  svg .t { font-weight: 600; font-size: 12.5px; }
+  svg .s { font-size: 11px; fill: var(--muted); }
+  svg .m { font-family: var(--mono); font-size: 11px; }
+  svg .h { font-family: var(--display); font-weight: 700; font-size: 12.5px; letter-spacing: .06em; fill: var(--muted); }
+  svg .ex { fill: var(--tint); stroke: var(--tint-line); stroke-width: 1.2; }
+  svg .pl { fill: var(--card); stroke: var(--muted); stroke-width: 1.2; stroke-dasharray: 5 4; }
+  svg .gd { fill: var(--gold); stroke: var(--gold-line); stroke-width: 1.2; }
+  svg .panel { fill: var(--panel); stroke: none; }
+  svg .chip { fill: var(--card); stroke: var(--tint-line); stroke-width: 1; }
+  svg .edge { fill: none; stroke: currentColor; stroke-width: 1.3; }
+  svg .edge.pl { stroke: var(--muted); stroke-dasharray: 5 4; }
+  svg .sys { fill: var(--accent); stroke: none; }
+  svg .sys-t { fill: var(--accent-ink); font-weight: 600; font-size: 12.5px; }
+  svg .sys-s { fill: var(--accent-ink); opacity: .82; font-size: 11px; }
+  svg .tb { fill: none; stroke: var(--red); stroke-width: 1.4; stroke-dasharray: 6 5; }
+  svg .red { fill: var(--red); font-weight: 600; font-size: 11.5px; }
+  figcaption { font-size: 13px; color: var(--muted); margin: 10px 4px 0; max-width: 84ch; }
+
+  .callout { border-left: 4px solid var(--accent); background: var(--card); border-radius: 0 8px 8px 0; padding: 12px 16px; margin: 14px 0 18px; max-width: 84ch; }
+  .callout.warn { border-left-color: var(--red); }
+  .callout.gold { border-left-color: var(--gold-line); }
+  .two { display: grid; grid-template-columns: 1fr; gap: 16px; }
+  @media (min-width: 720px) { .two { grid-template-columns: 1fr 1fr; } }
+  .small { font-size: 12.5px; color: var(--muted); }
+  footer { margin-top: 48px; padding-top: 16px; border-top: 1px solid var(--line); font-size: 12.5px; color: var(--muted); }
+
+  @page { size: A4; margin: 13mm 11mm 15mm; }
+  @media print {
+    :root:not([data-theme="dark"]) {
+      color-scheme: light;
+      --bg: #ffffff; --ink: #1a2330; --muted: #5d6977; --line: #c5ccd3; --panel: #eaeef1; --card: #ffffff;
+      --accent: #0b3a5d; --accent-ink: #ffffff; --tint: #dce8f2; --tint-line: #6f95b6; --gold: #f1e9d6; --gold-line: #b89a5a;
+      --red: #b8102b; --red-soft: #f8e3e6; --amber: #fbefd3; --amber-line: #9a6b0a; --green: #e0f0e4; --green-line: #2f7d4a;
+    }
+    body { background: #fff; font-size: 12.5px; }
+    .wrap { max-width: none; padding: 0; }
+    .cover { border-radius: 8px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    h2 { break-after: avoid; page-break-after: avoid; margin-top: 28px; }
+    h3, h4 { break-after: avoid; page-break-after: avoid; }
+    .pb { break-before: page; page-break-before: always; }
+    figure, .fig, .card, .callout, .kpi, tr { break-inside: avoid; page-break-inside: avoid; }
+    table { font-size: 11.5px; }
+    th, td { padding: 6px 8px; }
+    svg { min-width: 0; }
+    a { color: inherit; text-decoration: none; }
+    .toc ol { columns: 2; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<section class="cover">
+  <div class="eyebrow">Senior Project II · Module 1 · Project Reset</div>
+  <h1>Project Reset Report</h1>
+  <p class="lede">CEA Event Space Reservation System. A shared, verified picture of where the Lovable.dev prototype stands today, what it owes, what could hurt us, how healthy the backlog is, and what we build first.</p>
+  <div class="meta">
+    <div><b>Team</b>Backend Builders · Jonathan Abeje, Nathnael Bereketab, Giliad Dawite, Peter Collins</div>
+    <div><b>Client</b>Howard University, College of Engineering and Architecture (CEA), Dean's Office</div>
+    <div><b>Repository</b>github.com/joniabeje/backend-builders · branch <code>main</code> at <code>f317c48</code></div>
+    <div><b>Board</b>GitHub Project #5 “Backend Builders Project Board” · 15 items</div>
+    <div><b>Report date</b>October 7, 2026</div>
+    <div><b>Method</b>Full read of <code>src/</code>, configs and docs; GitHub API audit of issues and board; <code>npm</code> install, typecheck, lint and build run locally</div>
+  </div>
+</section>
+
+<nav class="toc">
+  <div class="eyebrow" style="margin-bottom:8px">Contents</div>
+  <ol>
+    <li><a href="#summary">Executive summary and readiness verdict</a></li>
+    <li><a href="#scope">Scope and method</a></li>
+    <li><a href="#arch">Current system architecture</a></li>
+    <li><a href="#debt">Technical debt, risks and unknowns</a></li>
+    <li><a href="#backlog">Backlog health assessment</a></li>
+    <li><a href="#priorities">Initial Senior Project II priorities</a></li>
+    <li><a href="#appendix">Appendix: verification log and traceability</a></li>
+  </ol>
+</nav>
+
+<!-- ============================================================ 1 -->
+<h2 id="summary"><span class="num">01</span> Executive summary and readiness verdict</h2>
+
+<div class="verdict">
+  <div class="card">
+    <h3>Verdict: a convincing UI prototype, not yet a product. Reset first, then build.</h3>
+    <p>The repository is a Lovable-generated TanStack Start front end with five routes, two hard-coded data modules and a handful of inline rules. Everything runs in the visitor's browser. There is no API, no database, no login, no test, no CI and no server-side rule of any kind. Submitting a reservation flips a React flag; approving one edits an in-memory array that a page refresh discards.</p>
+    <p>The README, landing page and reservation form all describe capabilities (conflict detection, automatic notifications to IT, custodial and security, analytics, AWS deployment) that do not exist in the code. The team already knows this: <code>DEBT_AND_RISK.md</code> (September 17) and the backlog notes (September 23) are accurate and candid. This report confirms them against the code, adds what they missed, and turns them into a sequenced plan.</p>
+    <p>The most important finding is not technical. The team has produced excellent planning artifacts, but the board shows three tickets in progress or in review that have no branch or pull request behind them. Senior Project II starts with a well-groomed backlog and an unbuilt foundation.</p>
+  </div>
+  <div class="card">
+    <h3>Readiness by area</h3>
+    <table>
+      <tr><td>Front-end shell and routing</td><td class="c"><span class="pill green">Ready</span></td></tr>
+      <tr><td>Requirements and backlog definition</td><td class="c"><span class="pill green">Ready</span></td></tr>
+      <tr><td>Architecture decisions (backend, hosting, auth)</td><td class="c"><span class="pill red">Undecided</span></td></tr>
+      <tr><td>Persistence and API</td><td class="c"><span class="pill red">Absent</span></td></tr>
+      <tr><td>Authentication and authorization</td><td class="c"><span class="pill red">Absent</span></td></tr>
+      <tr><td>Business rules (validation, risk, recommendation)</td><td class="c"><span class="pill amber">Client-only, duplicated</span></td></tr>
+      <tr><td>Tests and CI</td><td class="c"><span class="pill red">Absent</span></td></tr>
+      <tr><td>Reproducible install and build</td><td class="c"><span class="pill amber">Lockfile out of sync</span></td></tr>
+      <tr><td>Documentation accuracy</td><td class="c"><span class="pill amber">Drifted, partly corrected</span></td></tr>
+      <tr><td>Delivery flow (PRs, reviews, board accuracy)</td><td class="c"><span class="pill red">Stalled</span></td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="kpi">
+  <div class="k"><div class="v">5</div><div class="l">routes, all public, all client-side</div></div>
+  <div class="k"><div class="v">0</div><div class="l">API endpoints, tables, tests, CI workflows</div></div>
+  <div class="k"><div class="v">~1,125</div><div class="l">lines of application code (routes, lib, nav, router)</div></div>
+  <div class="k"><div class="v">4,360</div><div class="l">lines of UI scaffold with zero imports</div></div>
+  <div class="k"><div class="v">15 / 0</div><div class="l">issues open / closed</div></div>
+  <div class="k"><div class="v">0</div><div class="l">pull requests, ever</div></div>
+</div>
+
+<h3>Five things to do in the first two weeks</h3>
+<ol>
+  <li><b>Make the three platform decisions</b> (backend runtime, hosting, auth provider) in one meeting and record them as ADRs. Every P0 ticket is blocked on them. Recommendation in section 6.</li>
+  <li><b>Build the verification harness and CI</b> (#15) before any feature work, and turn on branch protection so the board's own Definition of Done becomes enforceable.</li>
+  <li><b>Fix reproducibility</b>: regenerate the lockfile, delete the second one, pick one package manager, and add a <code>.gitattributes</code>. Today <code>npm ci</code> fails on a clean checkout and lint fails on every Windows machine.</li>
+  <li><b>Reset the board to the truth</b>: move #3, #6 and #7 back to Ready, fill Priority and Size on #13 to #15, add milestones, and remove assignees from items that cannot start yet.</li>
+  <li><b>Start #13 (persistent API)</b> on day three. It is the top of the ordered backlog and unblocks eight of the fifteen tickets.</li>
+</ol>
+
+<!-- ============================================================ 2 -->
+<h2 id="scope"><span class="num">02</span> Scope and method</h2>
+<p>This report covers the state of the project on October 7, 2026. It was produced by reading every application source file, every configuration file and every document in the repository, by querying the GitHub repository, issues and Project board through the GitHub CLI, and by running the project's own toolchain locally. Claims in the README and issue bodies were checked against the code rather than taken as given.</p>
+
+<table class="framed">
+  <thead><tr><th>Input</th><th>What was examined</th><th>State at time of review</th></tr></thead>
+  <tbody>
+    <tr><td>Repository <code>main</code></td><td>23 commits; working tree at <code>f317c48</code> plus uncommitted edits to <code>README.md</code>, <code>docs/system-map.html</code> and <code>docs/system-map.pdf</code></td><td>Last commit September 24, 2026 (docs).</td></tr>
+    <tr><td>Application code</td><td><code>src/routes/*</code> (6 files), <code>src/lib/*</code> (3), <code>src/components/Site*.tsx</code> (2), <code>src/router.tsx</code>, <code>src/components/ui/*</code> (46)</td><td>Fully read.</td></tr>
+    <tr><td>Configuration</td><td><code>package.json</code>, both lockfiles, <code>vite.config.ts</code>, <code>wrangler.jsonc</code>, <code>tsconfig.json</code>, <code>eslint.config.js</code>, <code>bunfig.toml</code>, <code>components.json</code></td><td>Fully read.</td></tr>
+    <tr><td>Documents</td><td><code>README.md</code>, <code>DEBT_AND_RISK.md</code>, <code>docs/system-map.html</code> and its PDF</td><td>Fully read; findings re-verified.</td></tr>
+    <tr><td>GitHub Project #5</td><td>18 fields, 15 items, status, priority, size, assignees, board README</td><td>Queried via API.</td></tr>
+    <tr><td>GitHub issues</td><td>All 15 issues: bodies, labels, assignees, comments, milestones; all 29 labels; PRs; branches; branch protection</td><td>Queried via API.</td></tr>
+    <tr><td>Toolchain</td><td><code>npm ci</code>, <code>npm install</code>, <code>tsc --noEmit</code>, <code>npm run lint</code>, <code>npm run build</code></td><td>Run locally; results in Appendix A.</td></tr>
+  </tbody>
+</table>
+<p class="small">Out of scope: the Lovable-hosted preview environment, the CEA stakeholders' current manual process, and any code that exists only in a teammate's local checkout.</p>
+
+<!-- ============================================================ 3 -->
+<h2 id="arch" class="pb"><span class="num">03</span> Current system architecture</h2>
+<p>The application is a single front-end bundle. TanStack Start renders a server-side HTML shell and then hydrates in the browser, but the project contains no server code of its own: no server functions, no API routes, no environment bindings. Every route imports its data from two static TypeScript modules compiled into the bundle, applies rules inline during render, and keeps any edits in component state.</p>
+
+<h3>3.1 Architecture diagram: as built</h3>
+<div class="legend">
+  <span><i class="sw"></i> exists in the repository</span>
+  <span><i class="sw dash"></i> described in the README, not implemented</span>
+  <span><i class="sw tb"></i> trust boundary (everything inside runs in the visitor's browser)</span>
+</div>
+<figure>
+  <div class="fig">
+    <svg viewBox="0 0 1000 700" role="img" aria-label="As-built architecture. Requesters and admins, without logging in, open one of five TanStack routes in the browser. Routes call inline validation, recommendRooms and riskScore, which read two static modules, rooms.ts and mock-requests.ts. Edits live in React state and are lost on refresh. Vite builds the bundle; a TanStack Start entry serves it on Cloudflare Workers. Authentication, a backend API, a database, conflict detection, notifications and tests are not present.">
+      <defs>
+        <marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5 0 10z" fill="currentColor"></path></marker>
+      </defs>
+
+      <!-- actors -->
+      <rect class="ex" x="40" y="16" width="200" height="48" rx="6"></rect>
+      <text class="t" x="140" y="36" text-anchor="middle">Requester</text>
+      <text class="s" x="140" y="53" text-anchor="middle">student org, faculty, staff · no login</text>
+      <rect class="ex" x="260" y="16" width="200" height="48" rx="6"></rect>
+      <text class="t" x="360" y="36" text-anchor="middle">Dean's Office admin</text>
+      <text class="s" x="360" y="53" text-anchor="middle">same URL, same access · no login</text>
+      <text class="s" x="490" y="35">Both reach every route, including /admin, by typing the URL.</text>
+      <text class="s" x="490" y="52">Nothing distinguishes one visitor from another.</text>
+      <line class="edge" x1="250" y1="64" x2="250" y2="96" marker-end="url(#a1)"></line>
+
+      <!-- trust boundary -->
+      <rect class="tb" x="20" y="98" width="960" height="420" rx="10"></rect>
+      <text class="red" x="34" y="118">TRUST BOUNDARY · browser · every check below can be bypassed by editing client code</text>
+
+      <!-- presentation -->
+      <rect class="panel" x="34" y="130" width="932" height="128" rx="8"></rect>
+      <text class="h" x="46" y="150">PRESENTATION · src/routes (TanStack file routes) · src/components</text>
+      <rect class="ex" x="46" y="162" width="168" height="54" rx="6"></rect>
+      <text class="m" x="130" y="183" text-anchor="middle" font-weight="600">/</text>
+      <text class="s" x="130" y="201" text-anchor="middle">landing, feature claims</text>
+      <rect class="ex" x="226" y="162" width="168" height="54" rx="6"></rect>
+      <text class="m" x="310" y="183" text-anchor="middle" font-weight="600">/rooms</text>
+      <text class="s" x="310" y="201" text-anchor="middle">6 room cards, static badge</text>
+      <rect class="ex" x="406" y="162" width="168" height="54" rx="6"></rect>
+      <text class="m" x="490" y="183" text-anchor="middle" font-weight="600">/reserve</text>
+      <text class="s" x="490" y="201" text-anchor="middle">form, live checks, recs</text>
+      <rect class="ex" x="586" y="162" width="168" height="54" rx="6"></rect>
+      <text class="m" x="670" y="183" text-anchor="middle" font-weight="600">/dashboard</text>
+      <text class="s" x="670" y="201" text-anchor="middle">all 5 mock requests</text>
+      <rect class="ex" x="766" y="162" width="168" height="54" rx="6"></rect>
+      <text class="m" x="850" y="183" text-anchor="middle" font-weight="600">/admin</text>
+      <text class="s" x="850" y="201" text-anchor="middle">queue, approve / reject</text>
+      <rect class="chip" x="46" y="226" width="150" height="24" rx="4"></rect>
+      <text class="s" x="121" y="242" text-anchor="middle">SiteNav · SiteFooter</text>
+      <rect class="chip" x="204" y="226" width="206" height="24" rx="4"></rect>
+      <text class="s" x="307" y="242" text-anchor="middle">__root.tsx shell · 404 · error page</text>
+      <rect class="chip" x="418" y="226" width="170" height="24" rx="4"></rect>
+      <text class="s" x="503" y="242" text-anchor="middle">Tailwind v4 · styles.css tokens</text>
+      <rect class="pl" x="596" y="226" width="338" height="24" rx="4"></rect>
+      <text class="s" x="765" y="242" text-anchor="middle">src/components/ui · 46 shadcn files · imported by nothing</text>
+
+      <line class="edge" x1="500" y1="258" x2="500" y2="286" marker-end="url(#a1)"></line>
+      <text class="s" x="512" y="277">imports and calls during render</text>
+
+      <!-- rules -->
+      <rect class="panel" x="34" y="286" width="932" height="108" rx="8"></rect>
+      <text class="h" x="46" y="306">BUSINESS RULES · client-side, written inline per page, two disagreeing rule sets</text>
+      <rect class="ex" x="46" y="318" width="218" height="66" rx="6"></rect>
+      <text class="t" x="155" y="339" text-anchor="middle">Inline validation</text>
+      <text class="s" x="155" y="356" text-anchor="middle">in ReservePage: required fields, capacity</text>
+      <text class="s" x="155" y="371" text-anchor="middle">end after start · after-hours 08–18 / 20</text>
+      <rect class="ex" x="276" y="318" width="218" height="66" rx="6"></rect>
+      <text class="t" x="385" y="339" text-anchor="middle">recommendRooms(n)</text>
+      <text class="s" x="385" y="356" text-anchor="middle">n ≤ capacity ≤ 3n, smallest three</text>
+      <text class="s" x="385" y="371" text-anchor="middle">ignores date, time, features</text>
+      <rect class="ex" x="506" y="318" width="218" height="66" rx="6"></rect>
+      <text class="t" x="615" y="339" text-anchor="middle">riskScore(request)</text>
+      <text class="s" x="615" y="356" text-anchor="middle">150+ / 75+ attendees, guests, after-hours,</text>
+      <text class="s" x="615" y="371" text-anchor="middle">food → low / medium / high · display only</text>
+      <rect class="ex" x="736" y="318" width="218" height="66" rx="6"></rect>
+      <text class="t" x="845" y="339" text-anchor="middle">React useState</text>
+      <text class="s" x="845" y="356" text-anchor="middle">submitted flag · admin status edits</text>
+      <text class="s" x="845" y="371" text-anchor="middle">lost on refresh · never sent anywhere</text>
+
+      <line class="edge" x1="500" y1="394" x2="500" y2="422" marker-end="url(#a1)"></line>
+      <text class="s" x="512" y="413">reads in-memory arrays; nothing is ever written back</text>
+
+      <!-- data -->
+      <rect class="panel" x="34" y="422" width="932" height="86" rx="8"></rect>
+      <text class="h" x="46" y="442">DATA · static TypeScript modules compiled into the bundle</text>
+      <rect class="ex" x="46" y="450" width="295" height="52" rx="6"></rect>
+      <text class="m" x="193" y="467" text-anchor="middle" font-weight="600">src/lib/rooms.ts</text>
+      <text class="s" x="193" y="482" text-anchor="middle">ROOMS[6] · hard-coded status flag</text>
+      <text class="s" x="193" y="496" text-anchor="middle">one building spelled three ways</text>
+      <rect class="ex" x="353" y="450" width="295" height="52" rx="6"></rect>
+      <text class="m" x="500" y="467" text-anchor="middle" font-weight="600">src/lib/mock-requests.ts</text>
+      <text class="s" x="500" y="482" text-anchor="middle">MOCK_REQUESTS[5] · room is free text</text>
+      <text class="s" x="500" y="496" text-anchor="middle">matches none of the six Room.id values</text>
+      <rect class="ex" x="660" y="450" width="295" height="52" rx="6"></rect>
+      <text class="m" x="807" y="467" text-anchor="middle" font-weight="600">src/assets/</text>
+      <text class="s" x="807" y="482" text-anchor="middle">hero image and six room photos</text>
+      <text class="s" x="807" y="496" text-anchor="middle">imported by rooms.ts and the landing page</text>
+
+      <!-- build and hosting -->
+      <text class="h" x="34" y="548">BUILD AND HOSTING</text>
+      <rect class="ex" x="34" y="558" width="280" height="54" rx="6"></rect>
+      <text class="t" x="174" y="579" text-anchor="middle">Vite 7 · @lovable.dev/vite-tanstack-config</text>
+      <text class="s" x="174" y="597" text-anchor="middle">one opaque defineConfig(); all plugins hidden inside</text>
+      <line class="edge" x1="314" y1="585" x2="360" y2="585" marker-end="url(#a1)"></line>
+      <rect class="ex" x="360" y="558" width="280" height="54" rx="6"></rect>
+      <text class="t" x="500" y="579" text-anchor="middle">TanStack Start server entry</text>
+      <text class="s" x="500" y="597" text-anchor="middle">SSR shell, then hydrate · no server code of ours</text>
+      <line class="edge" x1="640" y1="585" x2="686" y2="585" marker-end="url(#a1)"></line>
+      <rect class="ex" x="686" y="558" width="280" height="54" rx="6"></rect>
+      <text class="t" x="826" y="579" text-anchor="middle">Cloudflare Workers (wrangler.jsonc)</text>
+      <text class="s" x="826" y="597" text-anchor="middle">named “tanstack-start-app” · Lovable preview URL</text>
+
+      <!-- missing -->
+      <text class="red" x="34" y="640">NOT IN THE REPOSITORY · each is listed as a feature in the README or on the landing page</text>
+      <rect class="pl" x="34" y="648" width="148" height="40" rx="6"></rect>
+      <text class="s" x="108" y="664" text-anchor="middle">Authentication, roles</text>
+      <text class="s" x="108" y="679" text-anchor="middle">TD-02 · #14</text>
+      <rect class="pl" x="190" y="648" width="148" height="40" rx="6"></rect>
+      <text class="s" x="264" y="664" text-anchor="middle">Reservation API</text>
+      <text class="s" x="264" y="679" text-anchor="middle">TD-01 · #13</text>
+      <rect class="pl" x="346" y="648" width="148" height="40" rx="6"></rect>
+      <text class="s" x="420" y="664" text-anchor="middle">Database, persistence</text>
+      <text class="s" x="420" y="679" text-anchor="middle">TD-01 · #13</text>
+      <rect class="pl" x="502" y="648" width="148" height="40" rx="6"></rect>
+      <text class="s" x="576" y="664" text-anchor="middle">Conflict detection</text>
+      <text class="s" x="576" y="679" text-anchor="middle">TD-03 · #3</text>
+      <rect class="pl" x="658" y="648" width="148" height="40" rx="6"></rect>
+      <text class="s" x="732" y="664" text-anchor="middle">Service notifications</text>
+      <text class="s" x="732" y="679" text-anchor="middle">TD-05 · #8 #9 #10</text>
+      <rect class="pl" x="814" y="648" width="148" height="40" rx="6"></rect>
+      <text class="s" x="888" y="664" text-anchor="middle">Tests and CI</text>
+      <text class="s" x="888" y="679" text-anchor="middle">TD-04 · #15</text>
+    </svg>
+  </div>
+  <figcaption>Figure 1. The system as it exists at commit <code>f317c48</code>. Three client-side layers inside one trust boundary, a build pipeline that serves the bundle, and six promised components that have no code. TD numbers refer to section 4; issue numbers to the GitHub backlog.</figcaption>
+</figure>
+
+<h3>3.2 Component inventory</h3>
+<table class="framed">
+  <thead><tr><th>Component</th><th>Location</th><th>Lines</th><th>What it does today</th><th>Notes</th></tr></thead>
+  <tbody>
+    <tr><td>Root shell</td><td class="m">src/routes/__root.tsx</td><td class="c">75</td><td>HTML document, meta tags, Google Fonts, 404 page</td><td>Meta still says <code>twitter:site @Lovable</code>.</td></tr>
+    <tr><td>Router and error page</td><td class="m">src/router.tsx</td><td class="c">67</td><td>Creates the router from the generated route tree; default error component</td><td>Standard Lovable template code.</td></tr>
+    <tr><td>Landing page</td><td class="m">src/routes/index.tsx</td><td class="c">~240</td><td>Hero, feature grid, stakeholder sections, calls to action</td><td>Claims “10+ CEA Spaces”; the catalog has 6. Links straight to /admin.</td></tr>
+    <tr><td>Rooms page</td><td class="m">src/routes/rooms.tsx</td><td class="c">~115</td><td>Card grid of the six rooms with a static Available / Reserved badge</td><td>Badge never changes.</td></tr>
+    <tr><td>Reservation form</td><td class="m">src/routes/reserve.tsx</td><td class="c">~240</td><td>Twelve-field form, live validation sidebar, recommended-room buttons, success panel</td><td>Submit sets a boolean. No payload, no request ID, no network call.</td></tr>
+    <tr><td>Requester dashboard</td><td class="m">src/routes/dashboard.tsx</td><td class="c">~100</td><td>Status counters and one card per request</td><td>Shows all five mock requests to every visitor.</td></tr>
+    <tr><td>Admin dashboard</td><td class="m">src/routes/admin.tsx</td><td class="c">~160</td><td>Stats, status filter, request table with risk badges and approve / reject buttons</td><td>Edits <code>useState</code> only; no feedback capture, no audit.</td></tr>
+    <tr><td>Navigation, footer</td><td class="m">src/components/Site*.tsx</td><td class="c">60</td><td>Header with Home, Rooms, My Requests, Admin; footer</td><td>Admin link visible to everyone.</td></tr>
+    <tr><td>Room catalog and recommender</td><td class="m">src/lib/rooms.ts</td><td class="c">~35</td><td><code>ROOMS[6]</code>; <code>recommendRooms(attendance)</code></td><td>Capacity-only heuristic. Building spelled three ways.</td></tr>
+    <tr><td>Mock requests and risk score</td><td class="m">src/lib/mock-requests.ts</td><td class="c">~120</td><td><code>MOCK_REQUESTS[5]</code>; <code>riskScore(request)</code></td><td>Room names match none of the six room IDs. <code>afterHours</code> is stored, not derived.</td></tr>
+    <tr><td>Utilities</td><td class="m">src/lib/utils.ts</td><td class="c">6</td><td><code>cn()</code> class-name helper</td><td></td></tr>
+    <tr><td>UI scaffold</td><td class="m">src/components/ui/*</td><td class="c">4,360</td><td>46 shadcn/ui wrappers over Radix, Recharts, Embla, Vaul, cmdk and others</td><td><b>Zero imports from any route or component.</b> Pure generator output.</td></tr>
+  </tbody>
+</table>
+
+<h3>3.3 Data flow: life of a request today</h3>
+<ol>
+  <li>A visitor opens <code>/reserve</code>. The route component builds <code>FormState</code> in <code>useState</code> and recomputes <code>recommendRooms(attendance)</code> and an <code>issues[]</code> array on every keystroke.</li>
+  <li>Validation errors disable the submit button. Warnings (after-hours, external guests with 50 or more attendees, food) are shown but nothing records them.</li>
+  <li>On submit, the handler calls <code>setSubmitted(true)</code>. No object is built, nothing is posted, no ID is generated. The success panel promises “status updates as it moves through approval”.</li>
+  <li>The “View My Requests” link opens <code>/dashboard</code>, which renders the same five hard-coded <code>MOCK_REQUESTS</code> for every visitor. The request just “submitted” is not among them.</li>
+  <li>On <code>/admin</code>, approve and reject call <code>setStatus()</code>, which maps over a <code>useState</code> copy of <code>MOCK_REQUESTS</code>. A refresh restores the original five rows. No feedback, actor or timestamp is captured.</li>
+  <li>No notification, email, webhook or log is produced at any step, although the landing page, the form's tip box and the README all say otherwise.</li>
+</ol>
+
+<h3>3.4 Dependencies</h3>
+<div class="two">
+  <div>
+    <h4>Runtime and framework</h4>
+    <table>
+      <tr><td>React 19.2, React DOM</td><td>used</td></tr>
+      <tr><td>TanStack Router 1.168, TanStack Start 1.167, router plugin</td><td>used</td></tr>
+      <tr><td>Tailwind CSS 4.2, tw-animate-css, clsx, tailwind-merge, class-variance-authority</td><td>used</td></tr>
+      <tr><td>lucide-react icons</td><td>used</td></tr>
+      <tr><td>TanStack React Query 5.83</td><td><span class="pill amber">installed, unused</span></td></tr>
+      <tr><td>zod 3.24, react-hook-form 7.71, @hookform/resolvers</td><td><span class="pill amber">installed, unused</span></td></tr>
+      <tr><td>25 Radix UI packages, recharts, embla-carousel, vaul, cmdk, input-otp, react-day-picker, react-resizable-panels, sonner, date-fns</td><td><span class="pill amber">only via unused scaffold</span></td></tr>
+    </table>
+  </div>
+  <div>
+    <h4>Build, platform and tooling</h4>
+    <table>
+      <tr><td>Vite 7.3, @vitejs/plugin-react, vite-tsconfig-paths</td><td>used</td></tr>
+      <tr><td>@lovable.dev/vite-tanstack-config 1.4+</td><td><span class="pill red">single point of coupling</span></td></tr>
+      <tr><td>@cloudflare/vite-plugin, wrangler.jsonc</td><td>build-only; deploy target implied</td></tr>
+      <tr><td>TypeScript 5.8 (strict), ESLint 9, typescript-eslint, Prettier 3</td><td>used; unused-variable rules switched off</td></tr>
+      <tr><td>Package managers</td><td><span class="pill red">both bun.lockb and package-lock.json committed</span></td></tr>
+      <tr><td>Hosting</td><td>Lovable preview URL; Cloudflare Workers config; README says AWS</td></tr>
+      <tr><td>External services (auth, DB, email)</td><td>none configured</td></tr>
+    </table>
+  </div>
+</div>
+<p class="small">The Lovable config package wraps TanStack Start, React, Tailwind, path aliases, the Cloudflare plugin, a dev-only component tagger and HMR bridge plugins. The project's <code>vite.config.ts</code> is a single call with no arguments, so every build decision lives in a third-party package whose minor versions have already drifted from the committed lockfile (see TD-08).</p>
+
+<h3>3.5 Target architecture the backlog describes</h3>
+<p>For orientation, this is the architecture the fifteen tickets add up to. It is unchanged from the README and <code>docs/system-map.pdf</code>; the number on each component is the issue that delivers it.</p>
+<div class="legend">
+  <span><i class="sw"></i> exists today</span>
+  <span><i class="sw dash"></i> planned, with the issue that adds it</span>
+  <span><i class="sw gold"></i> quality gate</span>
+  <span><i class="sw tb"></i> trust boundary moves to the server</span>
+</div>
+<figure>
+  <div class="fig">
+    <svg viewBox="0 0 1000 430" role="img" aria-label="Target architecture. The browser keeps the five routes and gains a typed API client. Requests cross HTTPS into a server trust boundary containing authentication and roles (issue 14), the reservation API (issue 13), and a domain module with validateReservation (issue 1), detectConflicts (issue 3), computeRisk (issue 5) and recommendRooms (issue 4). The API persists to a database (issue 13) and calls a notification service (issues 8, 9, 10) that alerts IT, custodial and security. A test harness and CI (issue 15) gate every pull request.">
+      <defs>
+        <marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5 0 10z" fill="currentColor"></path></marker>
+      </defs>
+      <!-- browser -->
+      <rect class="panel" x="20" y="20" width="250" height="330" rx="10"></rect>
+      <text class="h" x="36" y="44">BROWSER</text>
+      <rect class="ex" x="36" y="58" width="218" height="120" rx="6"></rect>
+      <text class="t" x="145" y="80" text-anchor="middle">Five routes (exist)</text>
+      <text class="s" x="145" y="98" text-anchor="middle">/, /rooms, /reserve, /dashboard, /admin</text>
+      <text class="s" x="145" y="116" text-anchor="middle">+ login route and route guards · #14</text>
+      <text class="s" x="145" y="134" text-anchor="middle">+ reject dialog with feedback · #7</text>
+      <text class="s" x="145" y="152" text-anchor="middle">+ availability-filtered room select · #3</text>
+      <text class="s" x="145" y="170" text-anchor="middle">+ requester-scoped dashboard · #11</text>
+      <rect class="pl" x="36" y="192" width="218" height="56" rx="6"></rect>
+      <text class="t" x="145" y="214" text-anchor="middle">Typed API client · src/lib/api.ts</text>
+      <text class="s" x="145" y="232" text-anchor="middle">react-query · mocks only in dev · #2 #13</text>
+      <rect class="pl" x="36" y="262" width="218" height="72" rx="6"></rect>
+      <text class="t" x="145" y="284" text-anchor="middle">Shared rule module (client copy)</text>
+      <text class="s" x="145" y="302" text-anchor="middle">same validate and risk functions</text>
+      <text class="s" x="145" y="320" text-anchor="middle">for instant feedback only · #1 #5</text>
+
+      <line class="edge" x1="270" y1="84" x2="318" y2="84" marker-end="url(#a2)"></line>
+      <text class="s" x="294" y="72" text-anchor="middle">HTTPS</text>
+      <text class="s" x="294" y="100" text-anchor="middle">session</text>
+
+      <!-- server -->
+      <rect class="tb" x="318" y="20" width="420" height="330" rx="10"></rect>
+      <text class="red" x="332" y="44">SERVER · TRUST BOUNDARY · Cloudflare Workers (or AWS)</text>
+      <rect class="pl" x="334" y="58" width="388" height="52" rx="6"></rect>
+      <text class="t" x="528" y="79" text-anchor="middle">Authentication and authorization · #14</text>
+      <text class="s" x="528" y="97" text-anchor="middle">email/password now, SSO later · roles: student, advisor, admin, facilities</text>
+      <line class="edge pl" x1="528" y1="110" x2="528" y2="126" marker-end="url(#a2)"></line>
+      <rect class="pl" x="334" y="126" width="388" height="52" rx="6"></rect>
+      <text class="t" x="528" y="147" text-anchor="middle">Reservation API · #13</text>
+      <text class="s" x="528" y="165" text-anchor="middle">POST / GET / PATCH /reservations · GET /rooms · audit log · #7</text>
+      <line class="edge pl" x1="528" y1="178" x2="528" y2="194" marker-end="url(#a2)"></line>
+      <rect class="panel" x="334" y="194" width="388" height="80" rx="6" style="stroke:var(--line);stroke-width:1"></rect>
+      <text class="h" x="346" y="212">DOMAIN MODULE · one source of truth for the rules</text>
+      <rect class="pl" x="346" y="222" width="88" height="42" rx="5"></rect>
+      <text class="s" x="390" y="240" text-anchor="middle">validate</text>
+      <text class="s" x="390" y="255" text-anchor="middle">Reservation · #1</text>
+      <rect class="pl" x="442" y="222" width="88" height="42" rx="5"></rect>
+      <text class="s" x="486" y="240" text-anchor="middle">detect</text>
+      <text class="s" x="486" y="255" text-anchor="middle">Conflicts · #3</text>
+      <rect class="pl" x="538" y="222" width="88" height="42" rx="5"></rect>
+      <text class="s" x="582" y="240" text-anchor="middle">compute</text>
+      <text class="s" x="582" y="255" text-anchor="middle">Risk · #5</text>
+      <rect class="pl" x="634" y="222" width="80" height="42" rx="5"></rect>
+      <text class="s" x="674" y="240" text-anchor="middle">recommend</text>
+      <text class="s" x="674" y="255" text-anchor="middle">Rooms · #4</text>
+      <rect class="pl" x="334" y="290" width="388" height="46" rx="6"></rect>
+      <text class="t" x="528" y="309" text-anchor="middle">Notification service · #8 #9 #10</text>
+      <text class="s" x="528" y="326" text-anchor="middle">on approval: IT, custodial, security · idempotent · dev adapter logs</text>
+
+      <!-- data -->
+      <line class="edge pl" x1="738" y1="152" x2="788" y2="152" marker-end="url(#a2)"></line>
+      <rect class="sys" x="790" y="120" width="190" height="66" rx="8"></rect>
+      <text class="sys-t" x="885" y="144" text-anchor="middle">Database · #13</text>
+      <text class="sys-s" x="885" y="161" text-anchor="middle">rooms · reservations · users</text>
+      <text class="sys-s" x="885" y="176" text-anchor="middle">reservation_events · notifications</text>
+
+      <!-- teams -->
+      <line class="edge pl" x1="738" y1="313" x2="788" y2="313" marker-end="url(#a2)"></line>
+      <rect class="ex" x="790" y="286" width="190" height="54" rx="6"></rect>
+      <text class="t" x="885" y="307" text-anchor="middle">Service teams</text>
+      <text class="s" x="885" y="325" text-anchor="middle">IT · custodial · security</text>
+
+      <!-- QA -->
+      <rect class="gd" x="20" y="372" width="960" height="44" rx="8"></rect>
+      <text class="t" x="36" y="390">QUALITY GATES · #15</text>
+      <text class="s" x="36" y="407">Vitest on the domain module · Playwright: reserve → dashboard → admin · 401 / 403 checks on admin writes · CI blocks merge; branch protection requires it</text>
+    </svg>
+  </div>
+  <figcaption>Figure 2. Where the backlog is heading. The rules move behind the server trust boundary and run once; the browser keeps a copy only for instant feedback. The full target diagram with ticket dependencies is in <code>docs/system-map.pdf</code>.</figcaption>
+</figure>
+
+<!-- ============================================================ 4 -->
+<h2 id="debt" class="pb"><span class="num">04</span> Technical debt, risks and unknowns</h2>
+<p>Items TD-01 to TD-06 and RISK-01 to RISK-03 come from <code>DEBT_AND_RISK.md</code> and were re-verified line by line for this report; every one still holds. Items TD-07 onward and R-04 onward are new findings from this review.</p>
+
+<h3>4.1 Technical debt register</h3>
+<table class="framed">
+  <colgroup><col style="width:6%"><col style="width:13%"><col style="width:9%"><col style="width:31%"><col style="width:26%"><col style="width:8%"><col style="width:7%"></colgroup>
+  <thead><tr><th>ID</th><th>Item</th><th>Category</th><th>Evidence (verified October 7)</th><th>Impact if left as is</th><th>Severity</th><th>Resolved by</th></tr></thead>
+  <tbody>
+    <tr><td class="m">TD-01</td><td>Mock-only data plane; no API, no database</td><td>Architecture</td><td><code>reserve.tsx</code> submit handler is <code>setSubmitted(true)</code>; <code>admin.tsx</code> mutates <code>useState(MOCK_REQUESTS)</code>; no DB or HTTP client in <code>package.json</code>.</td><td>No reservation is ever stored. Two users cannot see the same data, so scheduling, approvals and audit are impossible. Blocks 8 of 15 tickets.</td><td><span class="pill red">Blocker</span></td><td>#13</td></tr>
+    <tr><td class="m">TD-02</td><td>No authentication or authorization</td><td>Architecture, security</td><td>All five routes public; no <code>beforeLoad</code> guards; Admin link in nav for everyone; landing hero links to /admin.</td><td>Anyone with the URL can approve or reject events. Requester data (organization, advisor, guest flags) is visible to all. Cannot be deployed to a real audience.</td><td><span class="pill red">Blocker</span></td><td>#14</td></tr>
+    <tr><td class="m">TD-03</td><td>Business rules inline in components, two disagreeing rule sets</td><td>Architecture</td><td>Form after-hours: start ≥ 18:00 or &lt; 08:00, end ≥ 20:00; guests + 50 attendees warns. <code>riskScore</code>: thresholds 150 / 75, reads a stored <code>afterHours</code> flag. Neither is enforced on submit.</td><td>Form and admin page can disagree about the same request. Rules can be bypassed from the browser. Every new page re-implements them and diverges further.</td><td><span class="pill red">High</span></td><td>#1, #5</td></tr>
+    <tr><td class="m">TD-04</td><td>Zero automated tests, no CI</td><td>Test</td><td>No <code>*.test.*</code> files, no test runner, no <code>.github/</code> directory, no branch protection on <code>main</code>.</td><td>Any refactor or AI-generated change can break scheduling or risk logic unnoticed. The board's Definition of Done ("CI green") cannot be met by any ticket.</td><td><span class="pill red">Blocker</span></td><td>#15</td></tr>
+    <tr><td class="m">TD-05</td><td>Documentation drift</td><td>Documentation</td><td>README “Key Features” lists conflict detection, notifications, analytics; landing page claims “10+ CEA Spaces” and automatic team notifications; form tip box repeats the claim. README architecture section was rewritten to the target design but not labelled as target.</td><td>Stakeholders expect features that do not exist; demos disappoint. AI coding agents reading the README generate calls to an API that is not there.</td><td><span class="pill amber">Medium</span></td><td>new issue (section 5.4)</td></tr>
+    <tr><td class="m">TD-06</td><td>Hard-coded inventory and broken joins</td><td>Data model</td><td>“L.K. Downing Hall”, “L.K. Downing Engineering Building”, “Downing Hall” for one building; <code>EventRequest.room</code> is free text (“L.K. Downing 1018”, “Mackey Atrium”) matching none of the six <code>Room.id</code> values; <code>Room.status</code> never changes.</td><td>Conflict detection has no key to join on, so double bookings cannot be detected. Availability badges mislead users.</td><td><span class="pill amber">Medium</span></td><td>#13, #3</td></tr>
+    <tr><td class="m">TD-07</td><td><b>New.</b> 46-file UI scaffold with zero consumers</td><td>Dead code, dependency weight</td><td><code>src/components/ui/*</code> is 4,360 lines; a grep for <code>components/ui</code> outside that folder returns nothing. It pulls in 25 Radix packages plus recharts, embla, vaul, cmdk, input-otp, react-day-picker, react-resizable-panels and sonner.</td><td>Four times more code to read, lint and audit than the app itself. Roughly 30 dependencies to keep patched for no benefit. Confuses new contributors about what is in use.</td><td><span class="pill amber">Medium</span></td><td>new issue</td></tr>
+    <tr><td class="m">TD-08</td><td><b>New.</b> Non-reproducible install</td><td>Build</td><td><code>npm ci</code> fails on a clean checkout: the lockfile pins <code>@lovable.dev/vite-tanstack-config 1.2.0</code> against a <code>^1.4.0</code> range, and is missing nitro, miniflare, h3, rolldown and 15 other packages. A binary <code>bun.lockb</code> is also committed (<code>bunfig.toml</code> disables the text lockfile), so neither lockfile can be reviewed in a diff.</td><td>CI cannot be set up until this is fixed (CI uses <code>npm ci</code>). Each developer resolves different versions, so "works on my machine" bugs are guaranteed.</td><td><span class="pill red">High</span></td><td>#15 step 6</td></tr>
+    <tr><td class="m">TD-09</td><td><b>New.</b> Generator identity residue</td><td>Hygiene</td><td>Package name <code>tanstack_start_ts</code>; Worker name <code>tanstack-start-app</code>; <code>twitter:site @Lovable</code> meta; sample requesters are the team's own names; "<1s Validation" and "24/7 Tracking" marketing tiles.</td><td>Looks unfinished to a client or grader. Wrong Worker name collides if two teams deploy from the same template.</td><td><span class="pill grey">Low</span></td><td>new issue</td></tr>
+    <tr><td class="m">TD-10</td><td><b>New.</b> Quality gates switched off</td><td>Tooling</td><td><code>@typescript-eslint/no-unused-vars</code> is <code>off</code>; <code>noUnusedLocals</code> and <code>noUnusedParameters</code> are <code>false</code>. Dead code such as TD-07 cannot be caught by the linter.</td><td>Dead code and forgotten imports accumulate silently; review burden grows.</td><td><span class="pill grey">Low</span></td><td>#15</td></tr>
+    <tr><td class="m">TD-11</td><td><b>New.</b> Single opaque build config</td><td>Dependency coupling</td><td><code>vite.config.ts</code> is <code>defineConfig()</code> from the Lovable package with no arguments. Adding a test runner, env bindings or a D1 binding means learning what that package injects first.</td><td>Every backend step in #13 starts with reverse-engineering a third-party config. A breaking release of that package halts all builds.</td><td><span class="pill amber">Medium</span></td><td>ADR-001, #13</td></tr>
+    <tr><td class="m">TD-12</td><td><b>New.</b> Lint is not portable across operating systems</td><td>Tooling</td><td>No <code>.gitattributes</code>; Prettier enforces LF. On a Windows checkout <code>npm run lint</code> reports 5,546 line-ending errors and nothing else; on macOS or Linux it passes.</td><td>Windows teammates cannot run the gate the Definition of Done relies on, so they either skip lint or commit noisy whole-file reformatting.</td><td><span class="pill amber">Medium</span></td><td>#15 (add <code>* text=auto eol=lf</code> and renormalise)</td></tr>
+  </tbody>
+</table>
+
+<h3>4.2 Risk register</h3>
+<table class="framed">
+  <thead><tr><th>ID</th><th>Risk</th><th>Likelihood</th><th>Impact</th><th>Early signal</th><th>Mitigation and owner</th></tr></thead>
+  <tbody>
+    <tr><td class="m">RISK-01</td><td>Fabricated capability: docs and UI promise features the code lacks, so stakeholders and AI coding agents build on assumptions</td><td><span class="pill red">High</span> (already observed)</td><td>High</td><td>A demo question the UI cannot answer; an AI-generated PR that calls an API that does not exist</td><td>README “Current vs Planned” split; Definition of Done requires a test; no claim without an issue and a test. Owner: whoever edits README.</td></tr>
+    <tr><td class="m">RISK-02</td><td>Open admin plus sensitive event data (organizations, advisors, guest flags); later, prompt injection if LLM features are added; fairness of risk heuristics</td><td><span class="pill red">High</span></td><td>High</td><td>Any deployment of the current build to a real audience</td><td>#14 before any public URL; audit log (#7); thresholds agreed with CEA policy owner (#5); human confirms high-risk approvals.</td></tr>
+    <tr><td class="m">RISK-03</td><td>Platform coupling: Lovable config package, TanStack Start 1.x, Cloudflare plugin, pre-release nitro dependencies, drifted lockfile</td><td><span class="pill amber">Medium-High</span></td><td>High</td><td><code>npm ci</code> already fails; a Lovable config minor release changes build behaviour</td><td>Regenerate and pin the lockfile; own the Vite config (ADR-001); keep a non-Lovable deploy path exercised in CI.</td></tr>
+    <tr><td class="m">R-04</td><td><b>New.</b> Schedule: 8 P0 tickets (3 L, 4 M, 1 S) plus 7 more before the feature set is complete; one semester remains</td><td><span class="pill red">High</span></td><td>High</td><td>Sprint 1 ends with no merged PR</td><td>Fix MVP scope now (section 6); weekly merged-PR count as the one tracked metric; cut P2 service integrations to a single shared notification module if behind.</td></tr>
+    <tr><td class="m">R-05</td><td><b>New.</b> Undecided platform: README says Node or Flask and AWS, repo says Cloudflare Workers, issue #13 proposes TanStack server functions + D1. Every P0 ticket waits on this</td><td><span class="pill amber">Medium</span></td><td>High</td><td>#13 still unassigned two weeks from now</td><td>One 30-minute decision meeting in week 1; record ADR-001 to ADR-003. Owner: Scrum Master.</td></tr>
+    <tr><td class="m">R-06</td><td><b>New.</b> Howard SSO may not be available to a student team</td><td><span class="pill amber">Medium</span></td><td>Medium</td><td>No response from Howard IT by end of October</td><td>Build #14 on email/password with a provider that supports SAML/OIDC later (Supabase Auth or Auth0); treat SSO as a P2 swap.</td></tr>
+    <tr><td class="m">R-07</td><td><b>New.</b> Uneven contribution and bus factor: three members have commits, one has none; all board assignments sit with three people</td><td><span class="pill amber">Medium</span></td><td>Medium</td><td>Same author on every PR in a sprint</td><td>Pair on #13; rotate reviewer; every member owns at least one P0 ticket by sprint 2.</td></tr>
+    <tr><td class="m">R-08</td><td><b>New.</b> Lovable regeneration overwrites hand-written code if the team keeps editing through the Lovable editor while adding a backend</td><td><span class="pill amber">Medium</span></td><td>High</td><td>A commit by <code>gpt-engineer-app[bot]</code> after server code lands</td><td>Decide in week 1: Lovable for UI-only changes on a branch, or stop using it. Branch protection with required review blocks silent bot pushes to <code>main</code>.</td></tr>
+    <tr><td class="m">R-09</td><td><b>New.</b> Policy ambiguity: after-hours window, “large event” threshold and risk weighting are team guesses, not CEA rules; wrong guesses flag some student organizations unfairly</td><td><span class="pill amber">Medium</span></td><td>Medium</td><td>Two rule sets still disagree when #5 starts</td><td>Ask the Dean's Office for the written policy before #5; encode it once in <code>src/lib/risk.ts</code>; document in README.</td></tr>
+  </tbody>
+</table>
+
+<h3>4.3 Unknowns to resolve</h3>
+<table class="framed">
+  <thead><tr><th>Unknown</th><th>Why it matters</th><th>How to find out</th><th>Needed by</th></tr></thead>
+  <tbody>
+    <tr><td>Backend runtime and database</td><td>Blocks #13 and therefore eight tickets</td><td>Team decision; recommendation in 6.2</td><td>Week 1</td></tr>
+    <tr><td>Hosting target (Cloudflare Workers vs AWS)</td><td>Determines DB options (D1 vs RDS), secrets handling, CI deploy step</td><td>Same meeting; check course requirements for AWS</td><td>Week 1</td></tr>
+    <tr><td>Auth provider and whether Howard SSO is obtainable</td><td>Shapes #14 and the user table</td><td>Email Howard IT / faculty advisor; pick a provider that can add SAML later</td><td>Week 2</td></tr>
+    <tr><td>CEA written policy: after-hours definition, attendance thresholds, who must approve what</td><td>Removes guesswork from #1, #5, #10; fairness</td><td>Interview the Dean's Office contact</td><td>Before #5</td></tr>
+    <tr><td>Real room inventory and current booking calendar</td><td>Seeds <code>rooms</code>; without it conflict detection has nothing to check</td><td>Request a spreadsheet or calendar export from facilities</td><td>Before #3</td></tr>
+    <tr><td>How IT, custodial and security want to be notified (email, ticket system, shared calendar)</td><td>Shapes the adapter in #8</td><td>Ask each office; a dev adapter that logs is fine until then</td><td>Before #8</td></tr>
+    <tr><td>Whether the team keeps using Lovable to edit this repository</td><td>Determines branch strategy and the risk in R-08</td><td>Team decision</td><td>Week 1</td></tr>
+    <tr><td>Is Peter Collins active on the project?</td><td>Capacity planning; R-07</td><td>Ask</td><td>Week 1</td></tr>
+  </tbody>
+</table>
+
+<!-- ============================================================ 5 -->
+<h2 id="backlog" class="pb"><span class="num">05</span> Backlog health assessment</h2>
+<p>GitHub Project #5 holds all fifteen issues from the repository. Twelve are feature tickets created on April 29, 2026 and labelled F1 to F16; three are technical-debt tickets created on September 23 from <code>DEBT_AND_RISK.md</code>. On September 23 every issue body was extended with priority, size, dependencies, a “where to start” section, acceptance criteria and a definition of done, each verified against the repository. The board README defines P0 to P2, an ordered backlog, an MVP scope and a pickup rule.</p>
+
+<h3>5.1 Board snapshot (October 7, 2026)</h3>
+<table class="framed">
+  <thead><tr><th>#</th><th>Title</th><th>Board status</th><th>Priority</th><th>Size</th><th>Assignees</th><th>Depends on</th><th>Observation</th></tr></thead>
+  <tbody>
+    <tr><td class="m">13</td><td>Replace mock data layer with persistent reservation API</td><td>Ready</td><td><span class="pill grey">unset</span></td><td><span class="pill grey">unset</span></td><td>none</td><td>none</td><td>Top of the ordered backlog, yet unassigned; P0 / L only in body text</td></tr>
+    <tr><td class="m">14</td><td>Add authentication and role-based route protection</td><td>Ready</td><td><span class="pill grey">unset</span></td><td><span class="pill grey">unset</span></td><td>none</td><td>#13</td><td>Unassigned; fields unset</td></tr>
+    <tr><td class="m">15</td><td>Establish Vitest + Playwright verification harness</td><td>Ready</td><td><span class="pill grey">unset</span></td><td><span class="pill grey">unset</span></td><td>none</td><td>none</td><td>No dependency, size S, unassigned for two weeks</td></tr>
+    <tr><td class="m">2</td><td>Event Submission Form</td><td>Ready</td><td>P0</td><td>M</td><td>none</td><td>#13, #1</td><td>In Ready although its dependencies are not Done</td></tr>
+    <tr><td class="m">1</td><td>Real Time Validation System</td><td>Ready</td><td>P0</td><td>M</td><td>joniabeje, NathnaelBereketab</td><td>none</td><td>Two assignees on one M ticket</td></tr>
+    <tr><td class="m">3</td><td>Room Availability Checker</td><td><span class="pill amber">In progress</span></td><td>P0</td><td>M</td><td>giliaddawite</td><td>#13</td><td>No branch, no commit, no PR; depends on #13 which has not started</td></tr>
+    <tr><td class="m">7</td><td>Approve Reject Workflow</td><td><span class="pill amber">In progress</span></td><td>P0</td><td>M</td><td>joniabeje</td><td>#13, #14</td><td>No branch, no commit, no PR</td></tr>
+    <tr><td class="m">6</td><td>Admin Dashboard</td><td><span class="pill red">In review</span></td><td>P0</td><td>L</td><td>joniabeje</td><td>#13, #14</td><td>No PR exists to review; the UI part was built in April by Lovable</td></tr>
+    <tr><td class="m">11</td><td>Event Status Tracking</td><td>Backlog</td><td>P1</td><td>S</td><td>none</td><td>#13, #14, #7</td><td>Correct</td></tr>
+    <tr><td class="m">5</td><td>Risk Detection System</td><td>Backlog</td><td>P1</td><td>M</td><td>giliaddawite</td><td>#13</td><td>Assigned while in Backlog</td></tr>
+    <tr><td class="m">4</td><td>Room Recommendation Engine</td><td>Backlog</td><td>P1</td><td>M</td><td>giliaddawite</td><td>#3</td><td>Assigned while in Backlog</td></tr>
+    <tr><td class="m">8</td><td>Service Integration: Notification System</td><td>Backlog</td><td>P2</td><td>M</td><td>NathnaelBereketab</td><td>#13, #7</td><td>Assigned while in Backlog</td></tr>
+    <tr><td class="m">9</td><td>Custodial Notification System</td><td>Backlog</td><td>P2</td><td>S</td><td>NathnaelBereketab</td><td>#8</td><td>Assigned while in Backlog</td></tr>
+    <tr><td class="m">10</td><td>Security Notification System</td><td>Backlog</td><td>P2</td><td>S</td><td>NathnaelBereketab</td><td>#8, #5</td><td>Assigned while in Backlog</td></tr>
+    <tr><td class="m">12</td><td>Reservation History and Analytics</td><td>Backlog</td><td>P2</td><td>L</td><td>none</td><td>#13, #7</td><td>Correct</td></tr>
+  </tbody>
+</table>
+<p class="small">Totals: Backlog 7 · Ready 5 · In progress 2 · In review 1 · Done 0. Pull requests: 0. Milestones: 0. Issue comments: 0. Estimate, Start date and Target date fields: empty on all 15 items.</p>
+
+<h3>5.2 Scorecard</h3>
+<table class="framed">
+  <thead><tr><th>Dimension</th><th>Rating</th><th>What we found</th></tr></thead>
+  <tbody>
+    <tr><td>Scope coverage</td><td><span class="pill green">Good</span></td><td>Every feature in the README and every top-3 debt item has a ticket. Gaps: labels F6 (Verify Advisor), F9 (Admin Recommendations), F14 and F15 (cleaning tasks) exist with no issue; no ticket for deployment or hosting; no ticket for documentation drift (TD-05); no ticket for the unused scaffold (TD-07) or lockfile (TD-08, folded into #15 step 6).</td></tr>
+    <tr><td>Ticket quality</td><td><span class="pill green">Good</span></td><td>All 15 have priority, size, dependencies, “where to start” with file and line references, checkbox acceptance criteria and a definition of done. Several mark criteria already met. This is unusually strong for a student backlog.</td></tr>
+    <tr><td>Prioritization</td><td><span class="pill green">Good</span></td><td>P0 to P2 defined, an ordered table of all 15 items, and an explicit MVP of 8 tickets. Debt items are placed first, which matches the code.</td></tr>
+    <tr><td>Dependency modelling</td><td><span class="pill green">Good</span> / <span class="pill amber">Fair</span> in use</td><td>Dependencies are written in every body and in the board README, but the board's own rule (“do not pull from Backlog until dependencies are Done”) is violated by #2 in Ready and #3, #6, #7 in progress or review while #13 and #14 have not started.</td></tr>
+    <tr><td>Status accuracy</td><td><span class="pill red">Poor</span></td><td>Three items claim active work with no branch, commit or PR. The board describes intent, not reality. Standups and burndown based on it will mislead.</td></tr>
+    <tr><td>Throughput</td><td><span class="pill red">Poor</span></td><td>Zero issues closed, zero PRs, zero comments since the board was created. All movement has been planning.</td></tr>
+    <tr><td>Ownership</td><td><span class="pill amber">Fair</span></td><td>9 of 15 assigned, but the four tickets that must start first (#13, #14, #15, #2) are the unassigned ones. Six Backlog items are pre-assigned, which conflicts with the pickup rule and with pairing. One team member has no assignment and no commit.</td></tr>
+    <tr><td>Field hygiene</td><td><span class="pill amber">Fair</span></td><td>#13 to #15 have no Priority or Size on the board even though the body says P0 and L / M / S. No milestones or iterations, so there is no way to say “sprint 2” on the board. Date and estimate fields are unused.</td></tr>
+    <tr><td>Process guardrails</td><td><span class="pill red">Poor</span></td><td>Every definition of done says “CI green”, but there is no CI, no branch protection and no PR template. As written, no ticket can be Done.</td></tr>
+    <tr><td>Traceability</td><td><span class="pill green">Good</span></td><td>Debt tickets link to <code>DEBT_AND_RISK.md</code> anchors; feature labels F1 to F16 map to the original feature list; <code>docs/system-map.pdf</code> contains a ticket dependency graph.</td></tr>
+  </tbody>
+</table>
+
+<div class="callout gold">
+  <b>Overall: healthy definition, unhealthy flow.</b> The backlog is complete, well-written and correctly ordered. What it lacks is truth in status, enforceable gates, and any evidence of execution. The fix is procedural and takes an afternoon; the hard part is then sustaining weekly merges.
+</div>
+
+<h3>5.3 Backlog gaps: tickets to add</h3>
+<table class="framed">
+  <thead><tr><th>Proposed ticket</th><th>Source</th><th>Priority</th><th>Size</th><th>Depends on</th></tr></thead>
+  <tbody>
+    <tr><td>Record platform decisions as ADRs (backend, hosting, auth) in <code>docs/ARCHITECTURE.md</code></td><td>R-05, TD-11</td><td>P0</td><td>XS</td><td>none</td></tr>
+    <tr><td>Fix reproducible install: one package manager, regenerated lockfile, <code>npm ci</code> in CI</td><td>TD-08</td><td>P0</td><td>XS</td><td>none (can be #15 step 6, but deserves its own checkbox)</td></tr>
+    <tr><td>Deploy pipeline: CI deploys <code>main</code> to a non-Lovable URL (Workers or AWS)</td><td>RISK-03</td><td>P0</td><td>S</td><td>ADRs, #15</td></tr>
+    <tr><td>README “Current vs Planned”; remove unbacked claims from landing page and form tip</td><td>TD-05, RISK-01</td><td>P1</td><td>XS</td><td>none</td></tr>
+    <tr><td>Remove or justify unused UI scaffold and its dependencies</td><td>TD-07</td><td>P1</td><td>S</td><td>#15 (so the build is proven green before and after)</td></tr>
+    <tr><td>Advisor verification decision (F6): email confirmation vs checkbox</td><td>#1 step 2</td><td>P1</td><td>S</td><td>#1, #14</td></tr>
+    <tr><td>Rename generator defaults (package, Worker, meta tags)</td><td>TD-09</td><td>P2</td><td>XS</td><td>none</td></tr>
+    <tr><td>Decide on F9, F14, F15 labels: create issues or delete labels</td><td>5.2 coverage</td><td>P2</td><td>XS</td><td>none</td></tr>
+  </tbody>
+</table>
+
+<h3>5.4 Board actions (one afternoon, Scrum Master)</h3>
+<ol>
+  <li>Move #3, #6 and #7 back to <b>Ready</b>. Nothing is in progress until a branch exists.</li>
+  <li>Set Priority P0 and Size L / M / S on #13, #14 and #15 so the board's grouping matches the body text.</li>
+  <li>Create four milestones and attach every issue: <b>M1 Foundation</b> (#13, #14, #15, ADRs, lockfile), <b>M2 MVP</b> (#1, #2, #3, #6, #7, deploy), <b>M3 Decision support</b> (#4, #5, #11), <b>M4 Service integration</b> (#8, #9, #10, #12).</li>
+  <li>Clear assignees from Backlog items. Assign #13, #14, #15 now, one owner each, with a named pair on #13.</li>
+  <li>Move #2 to Backlog until #13 exposes a stub endpoint, or split it: “form-to-payload mapping and stubbed client” (Ready) and “wire to API” (Backlog).</li>
+  <li>Add the eight tickets in 5.3.</li>
+  <li>Turn on branch protection for <code>main</code>: require a PR, one review and the CI status check. Add a PR template that asks for the issue number and the test that proves the change.</li>
+  <li>Add a <b>Definition of Ready</b> to the board README: dependencies Done or stubbed, owner assigned, size set, milestone set.</li>
+</ol>
+
+<!-- ============================================================ 6 -->
+<h2 id="priorities" class="pb"><span class="num">06</span> Initial Senior Project II priorities</h2>
+<p>The ordering below follows the board's existing P0 to P2 scheme and dependency graph. It adds dates, a Sprint 0 for decisions and hygiene, and an explicit MVP demo target so the semester has a checkpoint that cannot be argued with.</p>
+
+<h3>6.1 Sequencing</h3>
+<table class="framed">
+  <thead><tr><th>Window</th><th>Goal</th><th>Tickets</th><th>Exit criterion</th></tr></thead>
+  <tbody>
+    <tr><td><b>Sprint 0</b><br><span class="small">Oct 7 to Oct 20</span></td><td>Decide, stabilise, make the board true</td><td>ADR-001 to 003 · lockfile fix · #15 harness and CI · branch protection · board actions 5.4 · README Current vs Planned</td><td><code>npm ci && npm test && npm run build</code> passes in CI on a PR; <code>main</code> is protected; three ADRs merged; board has milestones and no false “in progress”.</td></tr>
+    <tr><td><b>Sprint 1</b><br><span class="small">Oct 21 to Nov 3</span></td><td>Persistence</td><td>#13 (schema, <code>GET /rooms</code>, <code>POST</code> and <code>GET /reservations</code>, typed client, seed six rooms) · #1 (extract <code>validateReservation</code>, add unit tests)</td><td>A reservation submitted on <code>/reserve</code> survives a refresh and appears on <code>/dashboard</code> and <code>/admin</code> for a second browser.</td></tr>
+    <tr><td><b>Sprint 2</b><br><span class="small">Nov 4 to Nov 17</span></td><td>Identity and approvals</td><td>#14 (login, roles, server-side session check) · #7 (<code>PATCH</code> with feedback and audit row) · #13 remainder (OpenAPI, integration test)</td><td>Anonymous visitor to <code>/admin</code> is redirected; non-admin <code>PATCH</code> gets 403 in a test; approve and reject persist with actor and timestamp.</td></tr>
+    <tr><td><b>Sprint 3</b><br><span class="small">Nov 18 to Dec 1</span></td><td>MVP complete</td><td>#2 (real submit, request ID, error handling) · #3 (<code>detectConflicts</code>, filtered room select, 409) · #6 (admin on API data, guarded route) · deploy pipeline</td><td><b>MVP demo</b>: log in, reserve a free room, see it pending, log in as admin, approve with feedback, see it approved, on a non-Lovable URL. Playwright covers the path.</td></tr>
+    <tr><td><b>Sprint 4</b><br><span class="small">Dec 2 to Dec 15</span></td><td>Decision support (P1)</td><td>#5 (one rule set, risk stored at submit) · #11 (requester-scoped dashboard, feedback visible) · #4 (availability- and feature-aware recommendations)</td><td>Form and admin page agree on risk; recommendations never include a booked room.</td></tr>
+    <tr><td><b>Sprint 5+</b><br><span class="small">January 2027</span></td><td>Service integration and analytics (P2)</td><td>#8 shared notification module with dev adapter · #9 · #10 · #12</td><td>Approval of a qualifying request produces one notification per service, idempotently; analytics page reads real history.</td></tr>
+  </tbody>
+</table>
+<p class="small">Sizes from the board: Sprint 1 carries L + M, Sprint 2 M + M, Sprint 3 M + M + L + S. If Sprint 1 slips, protect the MVP by deferring #4 and the P2 notifications to a single shared module rather than three tickets.</p>
+
+<h3>6.2 Decisions to make in week 1, with a recommendation</h3>
+<table class="framed">
+  <thead><tr><th>Decision</th><th>Options on the table</th><th>Recommendation</th><th>Why</th></tr></thead>
+  <tbody>
+    <tr><td>ADR-001 Backend runtime</td><td>TanStack Start server functions · separate Express service · Flask service</td><td><b>TanStack Start server functions</b> (<code>createServerFn</code>) in this repository</td><td>Already installed and already deploys through <code>wrangler.jsonc</code>. One language, one repo, one deploy. Zero new infrastructure for a team that has not merged a PR yet. zod is installed for shared schemas.</td></tr>
+    <tr><td>ADR-002 Database and hosting</td><td>Cloudflare Workers + D1 · AWS (RDS or DynamoDB) · Supabase Postgres</td><td><b>Cloudflare Workers + D1</b> (SQLite); revisit AWS only if the course requires it</td><td>Matches ADR-001 and the existing config; free tier; local emulation through wrangler. If AWS is mandatory, use Supabase Postgres from Workers rather than re-platforming.</td></tr>
+    <tr><td>ADR-003 Authentication</td><td>Supabase Auth · Auth0 · Clerk · hand-rolled sessions · Howard SSO</td><td><b>Email/password through a hosted provider that supports OIDC/SAML later</b>; Howard SSO as a P2 swap once IT answers</td><td>#14 cannot wait on a university process. A provider with a SAML connector keeps the SSO door open without blocking the MVP.</td></tr>
+    <tr><td>Lovable usage</td><td>Keep editing via Lovable · UI-only on a branch · stop</td><td><b>Stop pushing from Lovable to <code>main</code></b>; allow UI experiments on a <code>lovable/*</code> branch merged by PR</td><td>Protects server code from regeneration (R-08) and forces every change through CI.</td></tr>
+    <tr><td>Package manager</td><td>npm · bun</td><td><b>npm</b>; delete <code>bun.lockb</code> and <code>bunfig.toml</code></td><td>bun is not installed on at least one team machine; GitHub Actions and Cloudflare tooling default to npm; text lockfile is reviewable.</td></tr>
+  </tbody>
+</table>
+
+<h3>6.3 Working agreements for Senior Project II</h3>
+<ul>
+  <li><b>One metric:</b> merged PRs per week, reviewed at every standup. Target two in Sprint 0, three or more afterwards.</li>
+  <li><b>Definition of Ready:</b> dependencies Done or stubbed; owner; size; milestone; acceptance criteria unchanged from the body.</li>
+  <li><b>Definition of Done:</b> PR says <code>Closes #n</code>; CI green; one reviewer who is not the author; acceptance checkboxes ticked; README updated if a claim changes.</li>
+  <li><b>No status without a branch.</b> “In progress” requires a branch named <code>&lt;issue&gt;-short-title</code>; “In review” requires an open PR.</li>
+  <li><b>Verify before trust:</b> AI-generated code (Lovable, Cursor, Copilot) is a draft until a test proves it. Risk, auth and persistence changes get a human walkthrough in review.</li>
+  <li><b>Ask the client early:</b> policy thresholds, room inventory and notification preferences are requested in Sprint 0, not when the ticket starts.</li>
+</ul>
+
+<div class="callout">
+  <b>What success looks like on December 1, 2026.</b> A student logs in, reserves a free room for a real date, and sees the request pending. An admin logs in, sees the risk flags, approves with a note, and the student sees it approved after a refresh. All of it on a URL the team controls, with a Playwright test that proves it on every pull request. Everything after that is decision support on top of a real system.
+</div>
+
+<!-- ============================================================ 7 -->
+<h2 id="appendix" class="pb"><span class="num">07</span> Appendix</h2>
+
+<h3>A. Verification log</h3>
+<p>Commands run on October 7, 2026 against a clean checkout of <code>main</code> at <code>f317c48</code> with Node 22.14 and npm. The lockfile was restored to the committed version afterwards.</p>
+<table class="framed">
+  <thead><tr><th>Check</th><th>Command</th><th>Result</th></tr></thead>
+  <tbody>
+    <tr><td>Reproducible install</td><td class="m">npm ci</td><td><span class="pill red">Fails</span> · <code>EUSAGE</code>: lockfile out of sync with <code>package.json</code> (20 invalid or missing packages, led by <code>@lovable.dev/vite-tanstack-config</code>, <code>rollup</code>, <code>nitro</code>, <code>miniflare</code>).</td></tr>
+    <tr><td>Install with resolution</td><td class="m">npm install</td><td><span class="pill green">Passes</span> · 538 packages in 31 s, but it rewrites <code>package-lock.json</code>, which is why the lockfile keeps drifting.</td></tr>
+    <tr><td>Type check</td><td class="m">npx tsc --noEmit</td><td><span class="pill green">Passes</span> · strict mode, no errors.</td></tr>
+    <tr><td>Lint</td><td class="m">npm run lint</td><td><span class="pill red">Fails</span> · 5,546 errors and 7 warnings. All 5,546 errors are <code>prettier/prettier</code> “Delete ␍”: the repo has no <code>.gitattributes</code>, so a Windows checkout with <code>core.autocrlf=true</code> gets CRLF endings that Prettier rejects. The 7 warnings are <code>react-refresh/only-export-components</code>, six of them in the unused scaffold. Lint therefore passes on macOS and Linux and fails on Windows (TD-12).</td></tr>
+    <tr><td>Production build</td><td class="m">npm run build</td><td><span class="pill green">Passes</span> · client in 9.5 s (main chunk 326 kB, 104 kB gzipped), SSR server bundle 38.6 kB. The build regenerates <code>src/routeTree.gen.ts</code>, so it should be gitignored or committed consistently.</td></tr>
+    <tr><td>Tests</td><td class="m">npm test</td><td><span class="pill red">No script</span> · no test runner, no test files.</td></tr>
+    <tr><td>UI scaffold usage</td><td class="m">grep -rn "components/ui" src | grep -v "^src/components/ui/"</td><td>0 matches.</td></tr>
+    <tr><td>CI and protection</td><td class="m">ls .github · gh api …/branches/main/protection</td><td>No <code>.github</code> directory · 404, no protection rules.</td></tr>
+    <tr><td>Pull requests and milestones</td><td class="m">gh pr list --state all · gh api …/milestones</td><td>0 PRs · 0 milestones.</td></tr>
+  </tbody>
+</table>
+
+<h3>B. Repository and board facts</h3>
+<table class="framed">
+  <tbody>
+    <tr><td>Repository created</td><td>April 29, 2026</td><td>Last push</td><td>September 24, 2026</td></tr>
+    <tr><td>Commits on <code>main</code></td><td>23</td><td>By <code>gpt-engineer-app[bot]</code> (Lovable)</td><td>14</td></tr>
+    <tr><td>Human committers</td><td>Jonathan Abeje (6), Nathnael Bereketab (1), Giliad Dawite (1)</td><td>Branches</td><td><code>main</code> only</td></tr>
+    <tr><td>Issues</td><td>15 open, 0 closed, 0 comments</td><td>Labels</td><td>29 (9 GitHub defaults, F1 to F16, 4 debt labels); F4, F6, F9, F14, F15 unused</td></tr>
+    <tr><td>Project board fields</td><td>18, including Priority (P0 to P2), Size (XS to XL), Estimate, Start date, Target date</td><td>Status columns</td><td>Backlog · Ready · In progress · In review · Done</td></tr>
+  </tbody>
+</table>
+
+<h3>C. Traceability: debt and risk to backlog</h3>
+<table class="framed">
+  <thead><tr><th>Finding</th><th>Existing ticket</th><th>Proposed ticket (5.3)</th><th>Milestone</th></tr></thead>
+  <tbody>
+    <tr><td class="m">TD-01, TD-06</td><td>#13, #3</td><td></td><td>M1, M2</td></tr>
+    <tr><td class="m">TD-02, RISK-02</td><td>#14, #7</td><td></td><td>M1, M2</td></tr>
+    <tr><td class="m">TD-03, R-09</td><td>#1, #5</td><td></td><td>M2, M3</td></tr>
+    <tr><td class="m">TD-04, TD-10, TD-12</td><td>#15</td><td></td><td>M1</td></tr>
+    <tr><td class="m">TD-05, RISK-01</td><td></td><td>README Current vs Planned</td><td>M1</td></tr>
+    <tr><td class="m">TD-07</td><td></td><td>Remove unused scaffold</td><td>M2</td></tr>
+    <tr><td class="m">TD-08, RISK-03</td><td>#15 step 6</td><td>Reproducible install; deploy pipeline</td><td>M1</td></tr>
+    <tr><td class="m">TD-09</td><td></td><td>Rename generator defaults</td><td>M4</td></tr>
+    <tr><td class="m">TD-11, R-05</td><td></td><td>ADR-001 to ADR-003</td><td>M1</td></tr>
+    <tr><td class="m">R-04, R-07</td><td></td><td>Working agreements (6.3), not a ticket</td><td>ongoing</td></tr>
+    <tr><td class="m">R-06</td><td>#14</td><td>SSO swap as P2 follow-up</td><td>M4</td></tr>
+    <tr><td class="m">R-08</td><td></td><td>Lovable usage decision; branch protection</td><td>M1</td></tr>
+  </tbody>
+</table>
+
+<h3>D. Related documents</h3>
+<ul>
+  <li><code>DEBT_AND_RISK.md</code>: original debt and risk inventory, September 17, 2026.</li>
+  <li><code>docs/system-map.pdf</code> (from <code>docs/system-map.html</code>): target architecture, layered as-is view, life of a request, ticket dependency graph, September 24, 2026.</li>
+  <li>GitHub Project #5 README: priority definitions, ordered backlog, MVP scope, pickup rule.</li>
+  <li>This report: <code>docs/project-reset-report.pdf</code> (from <code>docs/project-reset-report.html</code>).</li>
+</ul>
+
+<footer>Project Reset Report · Backend Builders · CEA Event Space Reservation System · October 7, 2026 · Generated from <code>docs/project-reset-report.html</code>.</footer>
+</div>
+</body>
+</html>

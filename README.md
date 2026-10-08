@@ -37,21 +37,90 @@ This project introduces an intelligent reservation system that:
 
 ## 🧱 Architecture
 
-The system follows a layered architecture:
+**Current state.** The app today is a front-end prototype that runs entirely in the browser. Rooms and requests come from static mock data in `src/lib`, and submissions and approvals are kept in page state, so they are lost on refresh. There is no backend API, database, login, or test suite yet. See the [Project Reset Report](docs/project-reset-report.pdf) for the full assessment.
 
-```
-Users
-  ↓
-Frontend (React + TypeScript)
-  ↓
-Backend API
-  ↓
-Validation | Scheduling | Recommendation Modules
-  ↓
-Database
+**Target architecture (planned).** The diagram below is the design the backlog delivers. Users sign in, the frontend talks to a reservation API over HTTPS, every rule runs once in a shared domain module on the server, and approvals persist to the database and fan out to the service teams. The red dashed border around the server is the trust boundary.
+
+```mermaid
+flowchart TB
+  subgraph USERS["Users"]
+    direction LR
+    REQ["Requester<br/>student org, faculty, staff"]
+    ADM["Dean's Office admin"]
+  end
+
+  subgraph CLIENT["Client · browser"]
+    FE["Frontend · TanStack Start, React 19, TypeScript<br/>routes: / · /rooms · /reserve · /dashboard · /admin"]
+    QC["Typed API client · react-query<br/>mocks only behind VITE_USE_MOCKS"]
+  end
+
+  subgraph SERVER["Server · Cloudflare Workers or AWS"]
+    AUTH["Authentication and authorization<br/>Howard SSO · roles: student, advisor, admin, facilities"]
+    API["Reservation API<br/>POST · GET · PATCH /reservations<br/>audit log on every admin write"]
+    subgraph DOMAIN["Domain module · single source of truth for the rules"]
+      direction LR
+      VAL["validateReservation"]
+      CONF["detectConflicts"]
+      RISK["computeRisk"]
+      REC["recommendRooms"]
+    end
+    NOTIF["Notification service<br/>email and webhooks on approval"]
+  end
+
+  subgraph DATA["Data"]
+    DB[("Database · Postgres / Supabase / D1<br/>rooms · reservations · users and roles · audit_log")]
+  end
+
+  subgraph TEAMS["Service teams"]
+    FAC["Facilities staff<br/>IT · custodial · security"]
+  end
+
+  subgraph QA["Quality gates · CI on every pull request"]
+    direction LR
+    UNIT["Vitest · domain rules"]
+    E2E["Playwright · reserve → dashboard → admin"]
+    SEC["401 / 403 checks on admin writes"]
+  end
+
+  REQ -->|"submit and track requests"| FE
+  ADM -->|"review, approve, reject"| FE
+  FE --> QC
+  QC -->|"HTTPS · JSON · session cookie"| AUTH
+  AUTH -->|"role checked server-side"| API
+  API --> VAL
+  API --> CONF
+  API --> RISK
+  API --> REC
+  VAL --> DB
+  CONF --> DB
+  RISK --> DB
+  REC --> DB
+  API -->|"on approval or high risk"| NOTIF
+  NOTIF -->|"alerts"| FAC
+  QA -.->|"gates merges to"| SERVER
+
+  classDef user fill:#dce8f2,stroke:#6f95b6,color:#1a2330
+  classDef client fill:#ffffff,stroke:#1a2330,color:#1a2330
+  classDef server fill:#ffffff,stroke:#0b3a5d,color:#1a2330
+  classDef domain fill:#eaeef1,stroke:#0b3a5d,color:#1a2330
+  classDef data fill:#0b3a5d,stroke:#0b3a5d,color:#ffffff
+  classDef qa fill:#f1e9d6,stroke:#b89a5a,color:#1a2330
+  class REQ,ADM,FAC user
+  class FE,QC client
+  class AUTH,API,NOTIF server
+  class VAL,CONF,RISK,REC domain
+  class DB data
+  class UNIT,E2E,SEC qa
+  style USERS fill:#f6f7f5,stroke:#c5ccd3,color:#5d6977
+  style CLIENT fill:#f6f7f5,stroke:#c5ccd3,color:#5d6977
+  style SERVER fill:#f6f7f5,stroke:#b8102b,stroke-dasharray:6 4,color:#5d6977
+  style DOMAIN fill:#ffffff,stroke:#c5ccd3,color:#5d6977
+  style DATA fill:#f6f7f5,stroke:#c5ccd3,color:#5d6977
+  style TEAMS fill:#f6f7f5,stroke:#c5ccd3,color:#5d6977
+  style QA fill:#f6f7f5,stroke:#c5ccd3,color:#5d6977
 ```
 
-This design ensures scalability, modularity, and clean separation of concerns.
+The same diagram, plus the as-is layered view of the repository, the today-versus-target comparison, and the ticket dependency graph, is in [`docs/system-map.pdf`](docs/system-map.pdf) (generated from [`docs/system-map.html`](docs/system-map.html)).
 
 ## ⚙️ Tech Stack
 
