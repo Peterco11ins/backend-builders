@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { SiteNav } from "@/components/SiteNav";
 import { SiteFooter } from "@/components/SiteFooter";
 import { ROOMS, recommendRooms } from "@/lib/rooms";
+import { validateReservation, type ReservationForm } from "@/domain/reservation-validation";
 import { CheckCircle2, AlertTriangle, Sparkles, Users2, CalendarCheck2 } from "lucide-react";
 
 export const Route = createFileRoute("/reserve")({
@@ -19,22 +20,7 @@ export const Route = createFileRoute("/reserve")({
   component: ReservePage,
 });
 
-type FormState = {
-  title: string;
-  organization: string;
-  advisor: string;
-  date: string;
-  startTime: string;
-  endTime: string;
-  attendance: string;
-  purpose: string;
-  room: string;
-  hasFood: boolean;
-  externalGuests: boolean;
-  itNeeds: boolean;
-};
-
-const initial: FormState = {
+const initial: ReservationForm = {
   title: "",
   organization: "",
   advisor: "",
@@ -50,59 +36,13 @@ const initial: FormState = {
 };
 
 function ReservePage() {
-  const [form, setForm] = useState<FormState>(initial);
+  const [form, setForm] = useState<ReservationForm>(initial);
   const [submitted, setSubmitted] = useState(false);
 
-  const attendance = parseInt(form.attendance) || 0;
+  const { attendance, issues, requiredFieldsFilled, canSubmit } = validateReservation(form, ROOMS);
   const recs = useMemo(() => recommendRooms(attendance), [attendance]);
 
-  const isAfterHours = useMemo(() => {
-    if (!form.startTime || !form.endTime) return false;
-    const startH = parseInt(form.startTime.split(":")[0]);
-    const endH = parseInt(form.endTime.split(":")[0]);
-    return startH >= 18 || startH < 8 || endH >= 20 || endH < 8;
-  }, [form.startTime, form.endTime]);
-
-  const issues: { type: "error" | "warn"; msg: string }[] = [];
-  if (form.attendance && attendance < 1)
-    issues.push({ type: "error", msg: "Attendance must be at least 1." });
-  if (form.room) {
-    const r = ROOMS.find((x) => x.id === form.room);
-    if (r && attendance > r.capacity)
-      issues.push({
-        type: "error",
-        msg: `${r.name} capacity is ${r.capacity} — exceeds attendance.`,
-      });
-  }
-  if (form.startTime && form.endTime && form.startTime >= form.endTime) {
-    issues.push({ type: "error", msg: "End time must be after start time." });
-  }
-  if (isAfterHours)
-    issues.push({ type: "warn", msg: "After-hours event — supervisor confirmation required." });
-  if (form.externalGuests && attendance >= 50)
-    issues.push({
-      type: "warn",
-      msg: "External guests + large attendance — security may be required.",
-    });
-  if (form.hasFood)
-    issues.push({
-      type: "warn",
-      msg: "Food service — custodial pre/post event scheduling will be triggered.",
-    });
-
-  const requiredOk =
-    form.title &&
-    form.organization &&
-    form.advisor &&
-    form.date &&
-    form.startTime &&
-    form.endTime &&
-    form.attendance &&
-    form.purpose &&
-    form.room;
-  const canSubmit = requiredOk && !issues.some((i) => i.type === "error");
-
-  function update<K extends keyof FormState>(k: K, v: FormState[K]) {
+  function update<K extends keyof ReservationForm>(k: K, v: ReservationForm[K]) {
     setForm((f) => ({ ...f, [k]: v }));
   }
 
@@ -323,23 +263,23 @@ function ReservePage() {
                 <Users2 className="h-4 w-4 text-primary" /> Live Validation
               </div>
               <ul className="mt-4 space-y-2 text-sm">
-                {issues.length === 0 && requiredOk && (
+                {issues.length === 0 && requiredFieldsFilled && (
                   <li className="flex gap-2 text-success">
                     <CheckCircle2 className="h-4 w-4 mt-0.5" /> All checks passed.
                   </li>
                 )}
-                {issues.length === 0 && !requiredOk && (
+                {issues.length === 0 && !requiredFieldsFilled && (
                   <li className="text-muted-foreground">Fill in the form to see live checks.</li>
                 )}
-                {issues.map((i, idx) => (
+                {issues.map((i) => (
                   <li
-                    key={idx}
-                    className={`flex gap-2 ${i.type === "error" ? "text-destructive" : "text-warning-foreground"}`}
+                    key={i.code}
+                    className={`flex gap-2 ${i.severity === "error" ? "text-destructive" : "text-warning-foreground"}`}
                   >
                     <AlertTriangle
-                      className={`h-4 w-4 mt-0.5 ${i.type === "error" ? "text-destructive" : "text-warning"}`}
+                      className={`h-4 w-4 mt-0.5 ${i.severity === "error" ? "text-destructive" : "text-warning"}`}
                     />
-                    <span className="text-foreground/90">{i.msg}</span>
+                    <span className="text-foreground/90">{i.message}</span>
                   </li>
                 ))}
               </ul>
