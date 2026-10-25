@@ -2,14 +2,26 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { SiteNav } from "@/components/SiteNav";
 import { SiteFooter } from "@/components/SiteFooter";
-import { MOCK_REQUESTS, riskScore, type EventRequest, type RequestStatus } from "@/lib/mock-requests";
-import { CheckCircle2, XCircle, AlertTriangle, Filter, Inbox, ShieldCheck, Activity } from "lucide-react";
+import { MOCK_REQUESTS, type EventRequest, type RequestStatus } from "@/lib/mock-requests";
+import { riskScore } from "@/lib/risk-score";
+import {
+  CheckCircle2,
+  XCircle,
+  AlertTriangle,
+  Filter,
+  Inbox,
+  ShieldCheck,
+  Activity,
+} from "lucide-react";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
     meta: [
       { title: "Admin Dashboard — CEA Reserve" },
-      { name: "description", content: "Centralized event request review with risk indicators and approval controls." },
+      {
+        name: "description",
+        content: "Centralized event request review with risk indicators and approval controls.",
+      },
     ],
   }),
   component: AdminPage,
@@ -22,7 +34,10 @@ const statusStyles: Record<RequestStatus, string> = {
   "needs-changes": "bg-primary/10 text-primary border-primary/30",
 };
 const statusLabel: Record<RequestStatus, string> = {
-  pending: "Pending", approved: "Approved", rejected: "Rejected", "needs-changes": "Needs Changes",
+  pending: "Pending",
+  approved: "Approved",
+  rejected: "Rejected",
+  "needs-changes": "Needs Changes",
 };
 
 const riskStyles = {
@@ -43,9 +58,24 @@ function AdminPage() {
 
   const stats = [
     { label: "Total Requests", value: requests.length, icon: Inbox, tone: "primary" },
-    { label: "Pending Review", value: requests.filter((r) => r.status === "pending").length, icon: Activity, tone: "warning" },
-    { label: "High Risk", value: requests.filter((r) => riskScore(r).level === "high").length, icon: AlertTriangle, tone: "destructive" },
-    { label: "Approved", value: requests.filter((r) => r.status === "approved").length, icon: ShieldCheck, tone: "success" },
+    {
+      label: "Pending Review",
+      value: requests.filter((r) => r.status === "pending").length,
+      icon: Activity,
+      tone: "warning",
+    },
+    {
+      label: "High Risk",
+      value: requests.filter((r) => riskScore(r).level === "high").length,
+      icon: AlertTriangle,
+      tone: "destructive",
+    },
+    {
+      label: "Approved",
+      value: requests.filter((r) => r.status === "approved").length,
+      icon: ShieldCheck,
+      tone: "success",
+    },
   ];
 
   return (
@@ -57,14 +87,18 @@ function AdminPage() {
             <ShieldCheck className="h-3.5 w-3.5" /> Dean's Office
           </div>
           <h1 className="mt-4 text-3xl font-bold text-foreground md:text-4xl">Admin Dashboard</h1>
-          <p className="mt-2 text-muted-foreground">Review reservations with auto-flagged risks and coordinate support services.</p>
+          <p className="mt-2 text-muted-foreground">
+            Review reservations with auto-flagged risks and coordinate support services.
+          </p>
         </div>
 
         <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {stats.map((s) => (
             <div key={s.label} className="rounded-xl border border-border bg-card p-5 shadow-card">
               <div className="flex items-center justify-between">
-                <div className="text-xs uppercase tracking-wider text-muted-foreground">{s.label}</div>
+                <div className="text-xs uppercase tracking-wider text-muted-foreground">
+                  {s.label}
+                </div>
                 <s.icon className="h-4 w-4 text-muted-foreground" />
               </div>
               <div className="mt-2 text-3xl font-bold text-foreground">{s.value}</div>
@@ -73,10 +107,15 @@ function AdminPage() {
         </div>
 
         <div className="mt-8 flex flex-wrap items-center gap-2">
-          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground"><Filter className="h-3.5 w-3.5" /> Filter:</span>
+          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+            <Filter className="h-3.5 w-3.5" /> Filter:
+          </span>
           {(["all", "pending", "approved", "needs-changes", "rejected"] as const).map((f) => (
-            <button key={f} onClick={() => setFilter(f)}
-              className={`rounded-full px-3 py-1 text-xs font-semibold transition-smooth ${filter === f ? "bg-gradient-primary text-primary-foreground shadow-elegant" : "bg-secondary text-muted-foreground hover:text-foreground"}`}>
+            <button
+              key={f}
+              onClick={() => setFilter(f)}
+              className={`rounded-full px-3 py-1 text-xs font-semibold transition-smooth ${filter === f ? "bg-gradient-primary text-primary-foreground shadow-elegant" : "bg-secondary text-muted-foreground hover:text-foreground"}`}
+            >
               {f === "all" ? "All" : statusLabel[f]}
             </button>
           ))}
@@ -101,38 +140,54 @@ function AdminPage() {
                   <tr key={r.id} className="hover:bg-secondary/40 transition-smooth">
                     <td className="px-4 py-4">
                       <div className="font-semibold text-foreground">{r.title}</div>
-                      <div className="text-xs text-muted-foreground">{r.organization} · {r.requester}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {r.organization} · {r.requester}
+                      </div>
                     </td>
                     <td className="px-4 py-4">
                       <div className="text-foreground">{r.date}</div>
-                      <div className="text-xs text-muted-foreground">{r.startTime}–{r.endTime}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {r.startTime}–{r.endTime}
+                      </div>
                     </td>
                     <td className="px-4 py-4">
                       <div className="text-foreground">{r.room}</div>
                       <div className="text-xs text-muted-foreground">{r.attendance} attendees</div>
                     </td>
                     <td className="px-4 py-4">
-                      <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-semibold capitalize ${riskStyles[risk.level]}`}>
+                      <span
+                        className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-semibold capitalize ${riskStyles[risk.level]}`}
+                      >
                         {risk.level !== "low" && <AlertTriangle className="h-3 w-3" />}
                         {risk.level}
                       </span>
                       {risk.reasons.length > 0 && (
-                        <div className="mt-1 text-[11px] text-muted-foreground">{risk.reasons.join(" · ")}</div>
+                        <div className="mt-1 text-[11px] text-muted-foreground">
+                          {risk.reasons.join(" · ")}
+                        </div>
                       )}
                     </td>
                     <td className="px-4 py-4">
-                      <span className={`inline-flex rounded-full border px-2.5 py-0.5 text-xs font-medium ${statusStyles[r.status]}`}>
+                      <span
+                        className={`inline-flex rounded-full border px-2.5 py-0.5 text-xs font-medium ${statusStyles[r.status]}`}
+                      >
                         {statusLabel[r.status]}
                       </span>
                     </td>
                     <td className="px-4 py-4 text-right">
                       <div className="inline-flex gap-1.5">
-                        <button onClick={() => setStatus(r.id, "approved")} title="Approve"
-                          className="inline-flex items-center justify-center rounded-md bg-success/10 p-2 text-success transition-smooth hover:bg-success/20">
+                        <button
+                          onClick={() => setStatus(r.id, "approved")}
+                          title="Approve"
+                          className="inline-flex items-center justify-center rounded-md bg-success/10 p-2 text-success transition-smooth hover:bg-success/20"
+                        >
                           <CheckCircle2 className="h-4 w-4" />
                         </button>
-                        <button onClick={() => setStatus(r.id, "rejected")} title="Reject"
-                          className="inline-flex items-center justify-center rounded-md bg-destructive/10 p-2 text-destructive transition-smooth hover:bg-destructive/20">
+                        <button
+                          onClick={() => setStatus(r.id, "rejected")}
+                          title="Reject"
+                          className="inline-flex items-center justify-center rounded-md bg-destructive/10 p-2 text-destructive transition-smooth hover:bg-destructive/20"
+                        >
                           <XCircle className="h-4 w-4" />
                         </button>
                       </div>
@@ -141,7 +196,11 @@ function AdminPage() {
                 );
               })}
               {filtered.length === 0 && (
-                <tr><td colSpan={6} className="px-4 py-10 text-center text-sm text-muted-foreground">No requests in this view.</td></tr>
+                <tr>
+                  <td colSpan={6} className="px-4 py-10 text-center text-sm text-muted-foreground">
+                    No requests in this view.
+                  </td>
+                </tr>
               )}
             </tbody>
           </table>
