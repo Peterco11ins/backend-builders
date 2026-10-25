@@ -1,5 +1,9 @@
 export type RequestStatus = "pending" | "approved" | "rejected" | "needs-changes";
 
+/**
+ * `room` stores a stable ROOMS id (e.g. "atrium"), not a free-text label.
+ * Display names come from getRoomDisplayName / getRoomById in rooms.ts.
+ */
 export type EventRequest = {
   id: string;
   title: string;
@@ -28,7 +32,7 @@ export const MOCK_REQUESTS: EventRequest[] = [
     startTime: "18:00",
     endTime: "20:00",
     attendance: 75,
-    room: "L.K. Downing 1018",
+    room: "arch-mp-b",
     status: "pending",
     hasFood: true,
     externalGuests: false,
@@ -45,7 +49,7 @@ export const MOCK_REQUESTS: EventRequest[] = [
     startTime: "17:00",
     endTime: "21:00",
     attendance: 240,
-    room: "Mackey Atrium",
+    room: "lkd-aud",
     status: "approved",
     hasFood: true,
     externalGuests: true,
@@ -62,7 +66,7 @@ export const MOCK_REQUESTS: EventRequest[] = [
     startTime: "14:00",
     endTime: "16:00",
     attendance: 28,
-    room: "L.K. Downing 2150",
+    room: "innovation",
     status: "approved",
     hasFood: false,
     externalGuests: false,
@@ -79,7 +83,7 @@ export const MOCK_REQUESTS: EventRequest[] = [
     startTime: "19:00",
     endTime: "22:00",
     attendance: 180,
-    room: "Engineering Commons",
+    room: "atrium",
     status: "needs-changes",
     hasFood: true,
     externalGuests: true,
@@ -96,7 +100,7 @@ export const MOCK_REQUESTS: EventRequest[] = [
     startTime: "12:00",
     endTime: "13:00",
     attendance: 45,
-    room: "L.K. Downing 1018",
+    room: "lkd-confa",
     status: "rejected",
     hasFood: false,
     externalGuests: false,

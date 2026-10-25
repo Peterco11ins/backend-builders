@@ -4,6 +4,7 @@ import { SiteNav } from "@/components/SiteNav";
 import { SiteFooter } from "@/components/SiteFooter";
 import { MOCK_REQUESTS, type EventRequest, type RequestStatus } from "@/lib/mock-requests";
 import { riskScore } from "@/lib/risk-score";
+import { getRoomDisplayName } from "@/lib/rooms";
 import {
   CheckCircle2,
   XCircle,
@@ -151,7 +152,7 @@ function AdminPage() {
                       </div>
                     </td>
                     <td className="px-4 py-4">
-                      <div className="text-foreground">{r.room}</div>
+                      <div className="text-foreground">{getRoomDisplayName(r.room)}</div>
                       <div className="text-xs text-muted-foreground">{r.attendance} attendees</div>
                     </td>
                     <td className="px-4 py-4">

@@ -5,10 +5,18 @@ import studioImg from "@/assets/room-studio.jpg";
 import seminarImg from "@/assets/room-seminar.jpg";
 import atriumImg from "@/assets/room-atrium.jpg";
 
+/** Canonical CEA building labels — one spelling per building. */
+export const BUILDINGS = {
+  LKD: "L.K. Downing Hall",
+  ARCH: "Architecture Building",
+} as const;
+
+export type BuildingName = (typeof BUILDINGS)[keyof typeof BUILDINGS];
+
 export type Room = {
   id: string;
   name: string;
-  building: string;
+  building: BuildingName;
   capacity: number;
   features: string[];
   floor: string;
@@ -17,18 +25,114 @@ export type Room = {
 };
 
 export const ROOMS: Room[] = [
-  { id: "lkd-aud", name: "Downing Hall Auditorium", building: "L.K. Downing Hall", floor: "Floor 1", capacity: 250, features: ["Projector", "Sound System", "Stage", "Wheelchair Access"], image: auditoriumImg, status: "available" },
-  { id: "lkd-confa", name: "LKD Conference Room A", building: "L.K. Downing Engineering Building", floor: "Floor 2", capacity: 40, features: ["Projector", "Whiteboard", "Video Conferencing"], image: conferenceImg, status: "available" },
-  { id: "innovation", name: "Innovation Lab", building: "L.K. Downing Engineering Building", floor: "Floor 3", capacity: 30, features: ["3D Printers", "Workbenches", "Projector", "Whiteboard"], image: innovationImg, status: "reserved" },
-  { id: "arch-mp-b", name: "Multipurpose Room B", building: "Architecture Building", floor: "Floor 1", capacity: 80, features: ["Projector", "Movable Seating", "Sound System"], image: studioImg, status: "available" },
-  { id: "seminar-201", name: "Seminar Room 201", building: "Architecture Building", floor: "Floor 2", capacity: 25, features: ["Smart Board", "Video Conferencing", "Whiteboard"], image: seminarImg, status: "available" },
-  { id: "atrium", name: "Grand Atrium", building: "Downing Hall", floor: "Floor 1", capacity: 150, features: ["Open Floor", "Natural Lighting", "Reception"], image: atriumImg, status: "available" },
+  {
+    id: "lkd-aud",
+    name: "Downing Hall Auditorium",
+    building: BUILDINGS.LKD,
+    floor: "Floor 1",
+    capacity: 250,
+    features: ["Projector", "Sound System", "Stage", "Wheelchair Access"],
+    image: auditoriumImg,
+    status: "available",
+  },
+  {
+    id: "lkd-confa",
+    name: "LKD Conference Room A",
+    building: BUILDINGS.LKD,
+    floor: "Floor 2",
+    capacity: 40,
+    features: ["Projector", "Whiteboard", "Video Conferencing"],
+    image: conferenceImg,
+    status: "available",
+  },
+  {
+    id: "innovation",
+    name: "Innovation Lab",
+    building: BUILDINGS.LKD,
+    floor: "Floor 3",
+    capacity: 30,
+    features: ["3D Printers", "Workbenches", "Projector", "Whiteboard"],
+    image: innovationImg,
+    status: "reserved",
+  },
+  {
+    id: "arch-mp-b",
+    name: "Multipurpose Room B",
+    building: BUILDINGS.ARCH,
+    floor: "Floor 1",
+    capacity: 80,
+    features: ["Projector", "Movable Seating", "Sound System"],
+    image: studioImg,
+    status: "available",
+  },
+  {
+    id: "seminar-201",
+    name: "Seminar Room 201",
+    building: BUILDINGS.ARCH,
+    floor: "Floor 2",
+    capacity: 25,
+    features: ["Smart Board", "Video Conferencing", "Whiteboard"],
+    image: seminarImg,
+    status: "available",
+  },
+  {
+    id: "atrium",
+    name: "Grand Atrium",
+    building: BUILDINGS.LKD,
+    floor: "Floor 1",
+    capacity: 150,
+    features: ["Open Floor", "Natural Lighting", "Reception"],
+    image: atriumImg,
+    status: "available",
+  },
 ];
 
+const roomById = new Map(ROOMS.map((room) => [room.id, room]));
+
+/**
+ * Look up a room by stable id.
+ * Throws on missing/blank ids so callers fail loudly instead of showing ghost rooms.
+ */
+export function getRoomById(id: string): Room {
+  const trimmed = id?.trim();
+  if (!trimmed) {
+    throw new Error("Room id is required");
+  }
+  const room = roomById.get(trimmed);
+  if (!room) {
+    throw new Error(`Unknown room id: ${trimmed}`);
+  }
+  return room;
+}
+
+/** Safe label for UI — never throws; falls back if the id is unknown. */
+export function getRoomDisplayName(id: string): string {
+  try {
+    return getRoomById(id).name;
+  } catch {
+    return id?.trim() ? `Unknown room (${id})` : "Unassigned room";
+  }
+}
+
+const MAX_REASONABLE_ATTENDANCE = 5000;
+
+/**
+ * Recommend up to 3 rooms that fit attendance without being massively oversized.
+ * Rejects NaN, non-finite, and absurd values instead of returning junk matches.
+ */
 export function recommendRooms(attendance: number): Room[] {
-  if (!attendance || attendance < 1) return [];
-  return ROOMS
-    .filter((r) => r.capacity >= attendance && r.capacity <= attendance * 3)
+  if (
+    typeof attendance !== "number" ||
+    !Number.isFinite(attendance) ||
+    attendance < 1 ||
+    attendance > MAX_REASONABLE_ATTENDANCE
+  ) {
+    return [];
+  }
+
+  const needed = Math.floor(attendance);
+
+  return ROOMS.filter((r) => r.capacity >= needed && r.capacity <= needed * 3)
     .sort((a, b) => a.capacity - b.capacity)
     .slice(0, 3);
 }
